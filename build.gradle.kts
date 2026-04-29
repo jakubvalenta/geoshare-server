@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.plugin.serialization)
     alias(ktorLibs.plugins.ktor)
 }
 
@@ -17,6 +18,7 @@ dependencies {
     implementation(ktorLibs.server.core)
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.rateLimit)
+    implementation(ktorLibs.server.resources)
     implementation(ktorLibs.server.statusPages)
     implementation(libs.logback.classic)
 
