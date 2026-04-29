@@ -20,6 +20,8 @@ dependencies {
     implementation(ktorLibs.server.rateLimit)
     implementation(ktorLibs.server.resources)
     implementation(ktorLibs.server.statusPages)
+    implementation(ktorLibs.server.auth.apiKey)
+    implementation(ktorLibs.server.auth)
     implementation(libs.logback.classic)
 
     testImplementation(kotlin("test"))
