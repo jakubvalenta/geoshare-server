@@ -47,11 +47,11 @@ class ServerTest {
         configure("application-test.conf")
         assertEquals(
             HttpStatusCode.Unauthorized,
-            client.get("/v4/geocode/places/id").status,
+            client.get("/google-maps/geocode/places/id").status,
         )
         assertEquals(
             HttpStatusCode.Unauthorized,
-            client.get("/v4/geocode/places/id") {
+            client.get("/google-maps/geocode/places/id") {
                 headers["X-Api-Key"] = "spam"
             }.status,
         )
@@ -70,7 +70,7 @@ class ServerTest {
         }
         assertEquals(
             HttpStatusCode.OK,
-            client.get("/v4/geocode/places/id") {
+            client.get("/google-maps/geocode/places/id") {
                 headers["X-Api-Key"] = "test"
             }.status,
         )
