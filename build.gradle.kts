@@ -22,7 +22,11 @@ dependencies {
     implementation(ktorLibs.server.statusPages)
     implementation(ktorLibs.server.auth.apiKey)
     implementation(ktorLibs.server.auth)
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.hikaricp)
     implementation(libs.logback.classic)
+    implementation(libs.postgresql)
 
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)
