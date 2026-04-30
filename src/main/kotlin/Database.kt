@@ -12,9 +12,8 @@ import kotlin.uuid.ExperimentalUuidApi
 @OptIn(ExperimentalUuidApi::class)
 object ApiKeys : Table("api_keys") {
     val id = uuid("id").autoGenerate()
-    val name = text("name")
-    val keyHash = text("key_hash").uniqueIndex()
-    val keyPrefix = char("key_prefix", 8)
+    val name = varchar("name", 64)
+    val keyHash = char("key_hash", 64).uniqueIndex()
     val createdAt = long("created_at")
     val expiresAt = long("expires_at").nullable()
     val revokedAt = long("revoked_at").nullable()
@@ -22,12 +21,14 @@ object ApiKeys : Table("api_keys") {
     override val primaryKey = PrimaryKey(id)
 }
 
+@Suppress("unused")
 fun Application.configureDatabase() {
+    // TODO org.postgresql.Driver
     val config = HikariConfig().apply {
         jdbcUrl = environment.config.property("db.url").getString()
-        driverClassName = "org.postgresql.Driver"
-        username = environment.config.property("db.user").getString()
-        password = environment.config.property("db.password").getString()
+        driverClassName = environment.config.property("db.driver").getString()
+        username = environment.config.propertyOrNull("db.user")?.getString()
+        password = environment.config.propertyOrNull("db.password")?.getString()
         maximumPoolSize = 10
     }
     val dataSource = HikariDataSource(config)

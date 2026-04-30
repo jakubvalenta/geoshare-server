@@ -9,6 +9,7 @@ import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.resources.Resources
 import io.ktor.server.response.respondText
+import org.jetbrains.exposed.v1.core.StdOutSqlLogger
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
@@ -17,20 +18,25 @@ import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.time.Duration.Companion.seconds
+import kotlin.uuid.ExperimentalUuidApi
 
+@OptIn(ExperimentalUuidApi::class)
 @Suppress("unused")
 fun Application.rootModule() {
     install(Authentication) {
         apiKey {
             validate { keyFromHeader ->
                 transaction {
+                    addLogger(StdOutSqlLogger)
                     ApiKeys
-                        .select {
+                        .select(ApiKeys.id)
+                        .where {
                             ApiKeys.keyHash eq keyFromHeader.sha256Hex() and
                                 ApiKeys.revokedAt.isNull() and
                                 (ApiKeys.expiresAt.isNull() or (ApiKeys.expiresAt greaterEq System.currentTimeMillis()))
                         }
-                        .singleOrNull()
+                        .count()
+                        .takeIf { it > 0 }
                 }
             }
         }

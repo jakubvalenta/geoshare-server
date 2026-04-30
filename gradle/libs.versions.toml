@@ -1,5 +1,6 @@
 [versions]
 exposed = "1.2.0"
+h2 = "2.4.240"
 hikaricp = "4.0.3"
 kotlin = "2.3.20"
 logback = "1.5.21"
@@ -8,6 +9,7 @@ postgresql = "42.7.5"
 [libraries]
 exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
 exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
+h2 = { module = "com.h2database:h2", version.ref = "h2" }
 hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
