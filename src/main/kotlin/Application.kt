@@ -9,7 +9,6 @@ import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.resources.Resources
 import io.ktor.server.response.respondText
-import org.jetbrains.exposed.v1.core.StdOutSqlLogger
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
@@ -27,7 +26,6 @@ fun Application.rootModule() {
         apiKey {
             validate { keyFromHeader ->
                 transaction {
-                    addLogger(StdOutSqlLogger)
                     ApiKeys
                         .select(ApiKeys.id)
                         .where {

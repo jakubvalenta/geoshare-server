@@ -23,12 +23,11 @@ object ApiKeys : Table("api_keys") {
 
 @Suppress("unused")
 fun Application.configureDatabase() {
-    // TODO org.postgresql.Driver
     val config = HikariConfig().apply {
-        jdbcUrl = environment.config.property("db.url").getString()
-        driverClassName = environment.config.property("db.driver").getString()
-        username = environment.config.propertyOrNull("db.user")?.getString()
-        password = environment.config.propertyOrNull("db.password")?.getString()
+        jdbcUrl = environment.config.property("database.url").getString()
+        driverClassName = environment.config.property("database.driver").getString()
+        username = environment.config.propertyOrNull("database.user")?.getString()
+        password = environment.config.propertyOrNull("database.password")?.getString()
         maximumPoolSize = 10
     }
     val dataSource = HikariDataSource(config)
