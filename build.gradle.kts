@@ -22,6 +22,7 @@ dependencies {
     implementation(ktorLibs.server.auth.apiKey)
     implementation(ktorLibs.server.contentNegotiation)
     implementation(ktorLibs.server.core)
+    implementation(ktorLibs.server.di)
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.rateLimit)
     implementation(ktorLibs.server.resources)
@@ -29,6 +30,7 @@ dependencies {
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.hikaricp)
+    implementation(libs.lettuce.core)
     implementation(libs.logback.classic)
     implementation(libs.postgresql)
 
