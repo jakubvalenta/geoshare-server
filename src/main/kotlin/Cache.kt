@@ -3,19 +3,29 @@ package net.geoshare_app
 import io.ktor.server.plugins.di.annotations.Property
 import io.lettuce.core.ExperimentalLettuceCoroutinesApi
 import io.lettuce.core.RedisClient
+import io.lettuce.core.SetArgs
 import io.lettuce.core.api.coroutines
 
+interface Cache : AutoCloseable {
+    suspend fun get(key: String): String?
+    suspend fun set(key: String, value: String, expireSec: Long? = null)
+}
+
 @OptIn(ExperimentalLettuceCoroutinesApi::class)
-class Cache(connectionUri: String) : AutoCloseable {
+class CacheImpl(connectionUri: String) : Cache {
     private val client = RedisClient.create(connectionUri)
     private val connection = client.connect()
     private val commands = connection.coroutines()
 
-    suspend fun get(key: String): String? =
+    override suspend fun get(key: String) =
         commands.get(key)
 
-    suspend fun set(key: String, value: String) {
-        commands.set(key, value)
+    override suspend fun set(key: String, value: String, expireSec: Long?) {
+        if (expireSec != null) {
+            commands.set(key, value, SetArgs.Builder.ex(expireSec))
+        } else {
+            commands.set(key, value)
+        }
     }
 
     override fun close() {
@@ -26,4 +36,4 @@ class Cache(connectionUri: String) : AutoCloseable {
 
 @Suppress("unused")
 fun provideCache(@Property("cache.uri") cacheUri: String): Cache =
-    Cache(cacheUri)
+    CacheImpl(cacheUri)
