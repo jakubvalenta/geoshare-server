@@ -7,7 +7,6 @@ import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.apikey.apiKey
 import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.statuspages.StatusPages
-import io.ktor.server.resources.Resources
 import io.ktor.server.response.respondText
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
@@ -47,7 +46,6 @@ fun Application.rootModule() {
             }
         }
     }
-    install(Resources)
     install(StatusPages) {
         exception<GoogleMapsResponseException> { call, cause ->
             call.respondText(text = "500: Invalid Google Maps response.", status = HttpStatusCode.InternalServerError)
