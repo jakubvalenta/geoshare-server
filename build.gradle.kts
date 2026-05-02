@@ -31,9 +31,12 @@ dependencies {
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.hikaricp)
+    implementation(libs.junixsocket.core)
+    implementation(libs.kotlinx.coroutines.reactive)
     implementation(libs.lettuce.core)
     implementation(libs.logback.classic)
     implementation(libs.postgresql)
+    implementation(variantOf(libs.netty.transport.native.epoll) { classifier("linux-x86_64") } )
 
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)

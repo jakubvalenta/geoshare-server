@@ -12,7 +12,7 @@ interface BaseTest {
     @BeforeTest
     fun setupDatabase() {
         Database.connect(
-            url = @Suppress("SpellCheckingInspection") "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL",
+            url = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL",
             driver = "org.h2.Driver",
         )
         transaction {

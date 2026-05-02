@@ -12,13 +12,15 @@ import io.ktor.server.resources.get
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
+import java.io.File
 
 @Resource("/google-maps/geocode/places/{id}")
 private class PlaceResource(val id: String)
 
 @Suppress("unused")
 fun Application.googleMapsModule(cache: Cache, googleMapsClient: GoogleMapsClient) {
-    val googleMapsApiKey = environment.config.property("googleMaps.apiKey").getString()
+    val googleMapsApiKey = environment.config.propertyOrNull("googleMaps.apiKey")?.getString()
+        ?: File(environment.config.property("googleMaps.apiKeyFile").getString()).readText()
 
     install(ContentNegotiation) {
         json()
