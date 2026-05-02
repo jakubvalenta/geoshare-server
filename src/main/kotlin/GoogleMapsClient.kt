@@ -8,7 +8,10 @@ import io.ktor.http.appendPathSegments
 import io.ktor.http.headers
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+
+class GoogleMapsResponseException(cause: Throwable) : Exception(cause)
 
 @Serializable
 data class Location(val latitude: Double, val longitude: Double)
@@ -27,8 +30,8 @@ class GoogleMapsClientImpl : GoogleMapsClient {
         expectSuccess = true
     }
 
-    override suspend fun geocode(googleMapsApiKey: String, placeId: String) =
-        httpClient.get("https://geocode.googleapis.com") {
+    override suspend fun geocode(googleMapsApiKey: String, placeId: String): Location {
+        val res = httpClient.get("https://geocode.googleapis.com") {
             url {
                 appendPathSegments("v4", "geocode", "places", placeId)
             }
@@ -36,7 +39,13 @@ class GoogleMapsClientImpl : GoogleMapsClient {
                 append("X-Goog-Api-Key", googleMapsApiKey)
                 append("X-Goog-FieldMask", "location")
             }
-        }.body<Location>()
+        }
+        return try {
+            res.body()
+        } catch (tr: SerializationException) {
+            throw GoogleMapsResponseException(tr)
+        }
+    }
 }
 
 @Suppress("unused")

@@ -49,6 +49,9 @@ fun Application.rootModule() {
     }
     install(Resources)
     install(StatusPages) {
+        exception<GoogleMapsResponseException> { call, cause ->
+            call.respondText(text = "500: Invalid Google Maps response.", status = HttpStatusCode.InternalServerError)
+        }
         status(HttpStatusCode.TooManyRequests) { call, status ->
             val retryAfter = call.response.headers["Retry-After"]
             call.respondText(text = "429: Too many requests. Wait for $retryAfter seconds.", status = status)

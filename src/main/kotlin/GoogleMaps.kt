@@ -10,7 +10,6 @@ import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.resources.get
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
 @Resource("/google-maps/geocode/places/{id}")
@@ -27,35 +26,22 @@ fun Application.googleMapsModule(cache: Cache, googleMapsClient: GoogleMapsClien
         authenticate {
             rateLimit {
                 get<GeocodePlaceId> { geocodePlaceId ->
-                    // Use hash of place id as cache key to increase security by not directly storing user-provided data
-                    val placeIdHash = geocodePlaceId.id.sha256Hex()
+                    // To increase security, use hash of place id instead of the raw user-supplied place id as cache key
+                    val cacheKey = geocodePlaceId.id.sha256Hex()
 
                     // Try reading location from cache before calling Google Maps API
-                    val cachedLocation = cache.get(placeIdHash)?.let {
-                        try {
-                            Json.decodeFromString<Location>(it)
-                        } catch (tr: IllegalArgumentException) {
-                            null
+                    val cachedSerializedLocation = cache.get(cacheKey)
+                    val location = if (cachedSerializedLocation != null) {
+                        Json.decodeFromString<Location>(cachedSerializedLocation)
+                    } else {
+                        // Call Google Maps API
+                        googleMapsClient.geocode(googleMapsApiKey, geocodePlaceId.id).also {
+                            // Save location to cache; to increase security, serialize it to JSON instead of storing a
+                            // raw Google Maps response
+                            val serializedLocation = Json.encodeToString(it)
+                            cache.set(cacheKey, serializedLocation)
                         }
                     }
-                    if (cachedLocation != null) {
-                        call.respond(cachedLocation)
-                    }
-
-                    // Call Google Maps API
-                    val location = googleMapsClient.geocode(googleMapsApiKey, geocodePlaceId.id)
-
-                    // Save location to cache; to increase security, serialize it to JSON instead of storing a raw
-                    // Google Maps response
-                    val serializedLocation = try {
-                        Json.encodeToString(location)
-                    } catch (tr: SerializationException) {
-                        null
-                    }
-                    if (serializedLocation != null) {
-                        cache.set(placeIdHash, serializedLocation)
-                    }
-
                     call.respond(location)
                 }
             }

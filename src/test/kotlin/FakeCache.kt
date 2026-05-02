@@ -1,9 +1,14 @@
 package net.geoshare_app
 
+import kotlinx.serialization.json.Json
+
 class FakeCache : Cache {
     private data class Item(val value: String, val expireAtMillis: Long? = null)
 
-    private val map: MutableMap<String, Item> = mutableMapOf()
+    private val map: MutableMap<String, Item> = mutableMapOf(
+        FakeGoogleMapsClient.NOT_FOUND_CACHED_PLACE_ID.sha256Hex() to
+            Item(Json.encodeToString(Location(22.22, 111.11)))
+    )
 
     override suspend fun get(key: String) =
         map[key]?.let { item ->
