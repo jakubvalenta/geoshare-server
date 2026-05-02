@@ -1,7 +1,9 @@
 package net.geoshare_app
 
+import io.ktor.client.request.accept
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -66,7 +68,7 @@ class ServerTest {
                     it[createdAt] = System.currentTimeMillis()
                 }
             }
-            val res = client.get("/google-maps/geocode/places/test") {
+            val res = client.get("/google-maps/geocode/places/spam") {
                 headers["X-Api-Key"] = "test"
             }
             assertEquals(HttpStatusCode.NotFound, res.status)
@@ -86,6 +88,7 @@ class ServerTest {
             }
             val res = client.get("/google-maps/geocode/places/test") {
                 headers["X-Api-Key"] = "test"
+                accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.OK, res.status)
             assertEquals("""{"latitude":50.12345,"longitude":-11.12345}""", res.bodyAsText())
