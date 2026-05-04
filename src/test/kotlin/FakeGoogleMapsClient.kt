@@ -7,7 +7,7 @@ class FakeGoogleMapsClient : GoogleMapsClient {
     override suspend fun geocode(googleMapsApiKey: String, placeId: String) =
         when (placeId) {
             CORRECT_PLACE_ID -> Location(50.12345, -11.12345)
-            INVALID_RESPONSE_PLACE_ID -> throw GoogleMapsException(SerializationException())
+            INVALID_RESPONSE_PLACE_ID -> throw GoogleMapsException("Client request exception", SerializationException())
             NOT_FOUND_PLACE_ID -> throw NotFoundException()
             NOT_FOUND_CACHED_PLACE_ID -> throw NotFoundException()
             else -> throw NotImplementedError()

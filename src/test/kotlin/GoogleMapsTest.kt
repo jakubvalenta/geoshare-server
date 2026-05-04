@@ -68,7 +68,7 @@ class GoogleMapsTest : BaseTest {
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.InternalServerError, res.status)
-        assertEquals("500: Invalid Google Maps response.", res.bodyAsText())
+        assertEquals("500: Google Maps request failed.", res.bodyAsText())
     }
 
     @Test
