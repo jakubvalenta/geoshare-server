@@ -1,11 +1,9 @@
 package net.geoshare_app
 
 import io.ktor.resources.Resource
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.authenticate
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.resources.Resources
 import io.ktor.server.resources.get
@@ -23,9 +21,6 @@ fun Application.googleMapsModule(cache: Cache, googleMapsClient: GoogleMapsClien
     val googleMapsApiKey = environment.config.propertyOrNull("googleMaps.apiKey")?.getString()
         ?: File(environment.config.property("googleMaps.apiKeyFile").getString()).readText()
 
-    install(ContentNegotiation) {
-        json()
-    }
     install(Resources)
     routing {
         authenticate {
@@ -44,7 +39,7 @@ fun Application.googleMapsModule(cache: Cache, googleMapsClient: GoogleMapsClien
                             // Save location to cache; to increase security, serialize it to JSON instead of storing a
                             // raw Google Maps response
                             val serializedLocation = Json.encodeToString(it)
-                            cache.set(cacheKey, serializedLocation, expire = 30.days)
+                            cache.set(cacheKey, serializedLocation, 30.days)
                         }
                     }
                     call.respond(location)

@@ -1,27 +1,33 @@
 package net.geoshare_app
 
 import io.ktor.http.HttpStatusCode
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
-import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.jwt.jwt
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.ratelimit.RateLimit
+import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respondText
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
 @Suppress("unused")
 fun Application.rootModule() {
-    install(Authentication) {
-        jwt {
-            TODO()
-        }
+    install(ContentNegotiation) {
+        json()
     }
     install(RateLimit) {
         register {
             rateLimiter(limit = 5, refillPeriod = 60.seconds)
+            requestKey { applicationCall ->
+                applicationCall.request.headers["X-Forwarded-For"] ?: ""
+            }
+        }
+        register(RateLimitName("register")) {
+            rateLimiter(limit = 5, refillPeriod = 1.hours)
             requestKey { applicationCall ->
                 applicationCall.request.headers["X-Forwarded-For"] ?: ""
             }
