@@ -22,7 +22,7 @@ class GoogleMapsTest : BaseTest {
     fun `geocode place id route when unknown api key is passed returns 401`() = testApplication {
         configure("application-test.conf")
         val res = client.get("/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT_PLACE_ID}") {
-            headers["X-Api-Key"] = BaseTest.UNKNOWN_API_KEY
+            // TODO headers["X-Api-Key"] = BaseTest.UNKNOWN_API_KEY
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.Unauthorized, res.status)
@@ -32,7 +32,7 @@ class GoogleMapsTest : BaseTest {
     fun `geocode place id route when google api returns 404 returns 404`() = testApplication {
         configure("application-test.conf")
         val res = client.get("/google-maps/geocode/places/${FakeGoogleMapsClient.NOT_FOUND_PLACE_ID}") {
-            headers["X-Api-Key"] = BaseTest.CORRECT_API_KEY
+            // TODO headers["X-Api-Key"] = BaseTest.CORRECT_API_KEY
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.NotFound, res.status)
@@ -42,7 +42,7 @@ class GoogleMapsTest : BaseTest {
     fun `geocode place id route when google api returns 404 but place id is cached returns 200`() = testApplication {
         configure("application-test.conf")
         val res = client.get("/google-maps/geocode/places/${FakeGoogleMapsClient.NOT_FOUND_CACHED_PLACE_ID}") {
-            headers["X-Api-Key"] = BaseTest.CORRECT_API_KEY
+            // TODO headers["X-Api-Key"] = BaseTest.CORRECT_API_KEY
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.OK, res.status)
@@ -53,7 +53,7 @@ class GoogleMapsTest : BaseTest {
     fun `geocode place id route when google api returns 200 returns 200`() = testApplication {
         configure("application-test.conf")
         val res = client.get("/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT_PLACE_ID}") {
-            headers["X-Api-Key"] = BaseTest.CORRECT_API_KEY
+            // TODO headers["X-Api-Key"] = BaseTest.CORRECT_API_KEY
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.OK, res.status)
@@ -64,7 +64,7 @@ class GoogleMapsTest : BaseTest {
     fun `geocode place id route when google api returns invalid response returns 500`() = testApplication {
         configure("application-test.conf")
         val res = client.get("/google-maps/geocode/places/${FakeGoogleMapsClient.INVALID_RESPONSE_PLACE_ID}") {
-            headers["X-Api-Key"] = BaseTest.CORRECT_API_KEY
+            // TODO headers["X-Api-Key"] = BaseTest.CORRECT_API_KEY
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -77,7 +77,7 @@ class GoogleMapsTest : BaseTest {
         for (ip in listOf(null, "10.10.10.1", "10.10.10.2")) {
             repeat(5) {
                 val res = client.get("/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT_PLACE_ID}") {
-                    headers["X-Api-Key"] = BaseTest.CORRECT_API_KEY
+                    // TODO headers["X-Api-Key"] = BaseTest.CORRECT_API_KEY
                     if (ip != null) {
                         headers["X-Forwarded-For"] = ip
                     }
@@ -86,7 +86,7 @@ class GoogleMapsTest : BaseTest {
                 assertEquals(HttpStatusCode.OK, res.status)
             }
             val res = client.get("/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT_PLACE_ID}") {
-                headers["X-Api-Key"] = BaseTest.CORRECT_API_KEY
+                // TODO headers["X-Api-Key"] = BaseTest.CORRECT_API_KEY
                 if (ip != null) {
                     headers["X-Forwarded-For"] = ip
                 }

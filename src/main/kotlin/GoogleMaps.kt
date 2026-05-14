@@ -13,6 +13,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import java.io.File
+import kotlin.time.Duration.Companion.days
 
 @Resource("/google-maps/geocode/places/{id}")
 private class PlaceResource(val id: String)
@@ -43,7 +44,7 @@ fun Application.googleMapsModule(cache: Cache, googleMapsClient: GoogleMapsClien
                             // Save location to cache; to increase security, serialize it to JSON instead of storing a
                             // raw Google Maps response
                             val serializedLocation = Json.encodeToString(it)
-                            cache.set(cacheKey, serializedLocation)
+                            cache.set(cacheKey, serializedLocation, expire = 30.days)
                         }
                     }
                     call.respond(location)

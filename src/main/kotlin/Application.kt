@@ -4,17 +4,10 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.apikey.apiKey
+import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respondText
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.greaterEq
-import org.jetbrains.exposed.v1.core.isNull
-import org.jetbrains.exposed.v1.core.or
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -22,20 +15,8 @@ import kotlin.uuid.ExperimentalUuidApi
 @Suppress("unused")
 fun Application.rootModule() {
     install(Authentication) {
-        apiKey {
-            validate { keyFromHeader ->
-                transaction {
-                    ApiKeys
-                        .select(ApiKeys.id)
-                        .where {
-                            ApiKeys.keyHash eq keyFromHeader.sha256Hex() and
-                                ApiKeys.revokedAt.isNull() and
-                                (ApiKeys.expiresAt.isNull() or (ApiKeys.expiresAt greaterEq System.currentTimeMillis()))
-                        }
-                        .count()
-                        .takeIf { it > 0 }
-                }
-            }
+        jwt {
+            TODO()
         }
     }
     install(RateLimit) {

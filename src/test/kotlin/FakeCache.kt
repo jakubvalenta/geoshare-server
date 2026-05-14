@@ -1,6 +1,7 @@
 package net.geoshare_app
 
 import kotlinx.serialization.json.Json
+import kotlin.time.Duration
 
 class FakeCache : Cache {
     private data class Item(val value: String, val expireAtMillis: Long? = null)
@@ -15,11 +16,17 @@ class FakeCache : Cache {
             item.value.takeIf { item.expireAtMillis == null || item.expireAtMillis < System.currentTimeMillis() }
         }
 
-    override suspend fun set(key: String, value: String, expireSec: Long?) {
-        if (expireSec != null) {
-            map[key] = Item(value, System.currentTimeMillis() + expireSec * 1_000)
-        } else {
-            map[key] = Item(value)
+    override suspend fun set(key: String, value: String, expire: Duration) {
+        map[key] = Item(value, System.currentTimeMillis() + expire.inWholeMilliseconds)
+    }
+
+    override suspend fun delete(key: String) {
+        map.remove(key)
+    }
+
+    override suspend fun expire(key: String, expire: Duration) {
+        map[key]?.let { item ->
+            map[key] = item.copy(expireAtMillis = expire.inWholeMilliseconds)
         }
     }
 

@@ -5,10 +5,13 @@ import io.lettuce.core.ExperimentalLettuceCoroutinesApi
 import io.lettuce.core.RedisClient
 import io.lettuce.core.SetArgs
 import io.lettuce.core.api.coroutines
+import kotlin.time.Duration
 
 interface Cache : AutoCloseable {
     suspend fun get(key: String): String?
-    suspend fun set(key: String, value: String, expireSec: Long? = null)
+    suspend fun set(key: String, value: String, expire: Duration)
+    suspend fun delete(key: String)
+    suspend fun expire(key: String, expire: Duration)
 }
 
 @OptIn(ExperimentalLettuceCoroutinesApi::class)
@@ -20,12 +23,16 @@ class CacheImpl(connectionUri: String) : Cache {
     override suspend fun get(key: String) =
         commands.get(key)
 
-    override suspend fun set(key: String, value: String, expireSec: Long?) {
-        if (expireSec != null) {
-            commands.set(key, value, SetArgs.Builder.ex(expireSec))
-        } else {
-            commands.set(key, value)
-        }
+    override suspend fun set(key: String, value: String, expire: Duration) {
+        commands.set(key, value, SetArgs.Builder.ex(expire.inWholeSeconds))
+    }
+
+    override suspend fun delete(key: String) {
+        commands.del(key)
+    }
+
+    override suspend fun expire(key: String, expire: Duration) {
+        commands.expire(key, expire.inWholeSeconds)
     }
 
     override fun close() {
