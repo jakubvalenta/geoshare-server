@@ -7,6 +7,7 @@ import com.android.keyattestation.verifier.Verifier
 import com.android.keyattestation.verifier.challengecheckers.ChallengeMatcher
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
@@ -16,44 +17,39 @@ import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.serialization.Serializable
-import java.security.KeyFactory
 import java.security.SecureRandom
-import java.security.cert.CertificateFactory
-import java.security.cert.X509Certificate
-import java.security.spec.X509EncodedKeySpec
 import java.time.Instant
-import java.util.Base64
 import java.util.Date
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
 @Serializable
-private data class ChallengeResponse(val challenge: String)
+data class ChallengeResponse(val challenge: String)
 
 @Serializable
-private data class RegisterRequest(
-    val challenge: String,
-    val signature: String,
-    val certificateChain: List<String>,
-)
+data class RegisterRequest(val challenge: String, val signature: String, val certificateChain: List<String>)
 
 @Serializable
-private data class LoginRequest(
-    val challenge: String,
-    val signature: String,
-    val publicKey: String,
-)
+data class LoginRequest(val challenge: String, val signature: String, val publicKey: String)
+
+sealed interface AuthenticationResponse
 
 @Serializable
-private data class ErrorResponse(val message: String)
+data class ErrorResponse(val message: String) : AuthenticationResponse
 
 @Serializable
-private data class TokenResponse(val token: String)
+data class TokenResponse(val token: String) : AuthenticationResponse
+
+private fun createToken(publicKeyFingerprint: String, jwtSecret: String, expire: Duration = 24.hours): String =
+    JWT.create()
+        .withSubject(publicKeyFingerprint)
+        .withExpiresAt(Date(System.currentTimeMillis() + expire.inWholeMilliseconds))
+        .sign(Algorithm.HMAC256(jwtSecret))
 
 @Suppress("unused")
 fun Application.authenticationModule(cache: Cache) {
@@ -82,7 +78,7 @@ fun Application.authenticationModule(cache: Cache) {
     }
     routing {
         rateLimit {
-            get("/v1/auth/challenge") {
+            post("/v1/auth/challenge") {
                 val randomBytes = ByteArray(32).also { secureRandom.nextBytes(it) }
                 val challenge = randomBytes.base64Encode()
                 val challengeCacheKey = challenge.sha256Hex()
@@ -104,11 +100,7 @@ fun Application.authenticationModule(cache: Cache) {
                     ErrorResponse("Invalid challenge")
                 } else {
                     // Validate certificate chain
-                    val certFactory = CertificateFactory.getInstance("X.509")
-                    val certificateChain = req.certificateChain.map { base64 ->
-                        val der = Base64.getDecoder().decode(base64)
-                        certFactory.generateCertificate(der.inputStream()) as X509Certificate
-                    }
+                    val certificateChain = req.certificateChain.map { it.base64Decode().readCertificateFromDEROrPEM() }
                     val challengeChecker = ChallengeMatcher(challenge)
                     when (val verificationResult = verifier.verify(certificateChain, challengeChecker)) {
                         is VerificationResult.Success -> {
@@ -118,10 +110,7 @@ fun Application.authenticationModule(cache: Cache) {
                                     if (verificationResult.publicKey.verifySignature(signature, challenge)) {
                                         // Generate token
                                         val publicKeyFingerprint = verificationResult.publicKey.fingerprint()
-                                        val token = JWT.create()
-                                            .withSubject(publicKeyFingerprint)
-                                            .withExpiresAt(Date(System.currentTimeMillis() + tokenExpire.inWholeMilliseconds))
-                                            .sign(Algorithm.HMAC256(jwtSecret))
+                                        val token = createToken(publicKeyFingerprint, jwtSecret, tokenExpire)
                                         // Register device before deleting the challenge, so the client can retry if
                                         // device registration crashes
                                         cache.set("device:$publicKeyFingerprint", "", deviceExpire)
@@ -162,7 +151,10 @@ fun Application.authenticationModule(cache: Cache) {
                     }
                 }
 
-                call.respond(res)
+                when (res) {
+                    is ErrorResponse -> call.respond(HttpStatusCode.Unauthorized, res)
+                    is TokenResponse -> call.respond(res)
+                }
             }
         }
 
@@ -172,25 +164,20 @@ fun Application.authenticationModule(cache: Cache) {
                 val challenge = req.challenge.base64Decode()
                 val challengeCacheKey = challenge.sha256Hex()
                 val signature = req.signature.base64Decode()
-                val publicKey = KeyFactory
-                    .getInstance("EC")
-                    .generatePublic(X509EncodedKeySpec(req.publicKey.base64Decode()))
 
                 // Validate challenge
                 val res = if (cache.get("challenge:$challengeCacheKey") == null) {
                     ErrorResponse("Invalid challenge")
                 } else {
                     // Validate public key is registered
+                    val publicKey = req.publicKey.base64Decode().readPublicKeyFromDER()
                     val publicKeyFingerprint = publicKey.fingerprint()
                     if (cache.get("device:$publicKeyFingerprint") == null) {
                         ErrorResponse("Unknown device")
                     } else {
                         // Validate signature
                         if (publicKey.verifySignature(signature, challenge)) {
-                            val token = JWT.create()
-                                .withSubject(publicKeyFingerprint)
-                                .withExpiresAt(Date(System.currentTimeMillis() + tokenExpire.inWholeMilliseconds))
-                                .sign(Algorithm.HMAC256(jwtSecret))
+                            val token = createToken(publicKeyFingerprint, jwtSecret, tokenExpire)
                             // Refresh device TTL, so active devices never expire
                             cache.expire("device:$publicKeyFingerprint", deviceExpire)
                             // Delete challenge only after all validations pass, so the client can retry if anything

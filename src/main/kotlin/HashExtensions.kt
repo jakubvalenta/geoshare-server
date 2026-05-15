@@ -10,3 +10,9 @@ fun ByteArray.sha256Hex(): String =
 
 fun ByteArray.base64Encode(): String =
     Base64.getEncoder().encodeToString(this)
+
+fun String.sha256Hex(): String =
+    this.toByteArray().sha256Hex()
+
+fun String.base64Decode(): ByteArray =
+    Base64.getDecoder().decode(this)
