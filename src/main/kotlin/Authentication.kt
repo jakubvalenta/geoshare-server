@@ -167,7 +167,7 @@ fun Application.authenticationModule(cache: Cache, verifier: Verifier) {
                         // Validate signature
                         if (publicKey.verifySignature(signature, challenge)) {
                             val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire)
-                            // Refresh device TTL, so active devices never expire
+                            // Refresh device expiration, so active devices never expire
                             cache.expire("device:$publicKeyFingerprint", deviceExpire)
                             // Delete challenge only after all validations pass, so the client can retry if anything
                             // crashes

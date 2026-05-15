@@ -129,7 +129,7 @@ class AuthenticationTest {
             val registrationChallenge = jsonClient.post("/v1/auth/challenge")
                 .body<ChallengeResponse>().challenge.base64Decode()
 
-            advanceTimeBy(2.seconds)
+            advanceTimeBy(3.seconds)
 
             // Register
             val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
@@ -372,7 +372,7 @@ class AuthenticationTest {
             val loginChallenge = jsonClient.post("/v1/auth/challenge")
                 .body<ChallengeResponse>().challenge.base64Decode()
 
-            advanceTimeBy(2.seconds)
+            advanceTimeBy(3.seconds)
 
             // Login
             val loginSignature = Certs.leafKey.private.sign(loginChallenge)
@@ -421,6 +421,59 @@ class AuthenticationTest {
         }
         assertEquals(HttpStatusCode.Unauthorized, res.status)
         assertEquals("Unknown device", res.body())
+    }
+
+    @Test
+    fun `login route when device expires returns 401`() = runTest {
+        testApplication(testScheduler) {
+            environment {
+                config = ApplicationConfig("application-test.conf")
+            }
+            application {
+                rootModule()
+                authenticationModule(cache = FakeCache(testScheduler.timeSource), verifier = provideVerifier())
+            }
+
+            // Registration challenge
+            val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+                .body<ChallengeResponse>().challenge.base64Decode()
+
+            // Register
+            val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
+            val certificateChain = CertLists.validFactoryProvisioned
+            jsonClient.post("/v1/auth/register") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    RegisterRequest(
+                        challenge = registrationChallenge.base64Encode(),
+                        signature = registrationSignature.base64Encode(),
+                        certificateChain = certificateChain.map { it.encoded.base64Encode() },
+                    )
+                )
+            }
+
+            advanceTimeBy(7.seconds)
+
+            // Login challenge
+            val loginChallenge = jsonClient.post("/v1/auth/challenge")
+                .body<ChallengeResponse>().challenge.base64Decode()
+
+            // Login
+            val loginSignature = Certs.leafKey.private.sign(loginChallenge)
+            val publicKey = Certs.leafKey.public
+            val res = jsonClient.post("/v1/auth/login") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    LoginRequest(
+                        challenge = loginChallenge.base64Encode(),
+                        signature = loginSignature.base64Encode(),
+                        publicKey = publicKey.encoded.base64Encode(),
+                    )
+                )
+            }
+            assertEquals(HttpStatusCode.Unauthorized, res.status)
+            assertEquals("Unknown device", res.body())
+        }
     }
 
     @Test
@@ -524,7 +577,80 @@ class AuthenticationTest {
         )
     }
 
-    // TODO Test device expiration
-    // TODO Test device refresh
+    @Test
+    fun `login route when signature is valid refreshes device expiration`() =
+        runTest {
+            testApplication(testScheduler) {
+                environment {
+                    config = ApplicationConfig("application-test.conf")
+                }
+                application {
+                    rootModule()
+                    authenticationModule(cache = FakeCache(testScheduler.timeSource), verifier = provideVerifier())
+                }
+
+                // Registration challenge
+                val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+                    .body<ChallengeResponse>().challenge.base64Decode()
+
+                // Register
+                val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
+                val certificateChain = CertLists.validFactoryProvisioned
+                jsonClient.post("/v1/auth/register") {
+                    contentType(ContentType.Application.Json)
+                    setBody(
+                        RegisterRequest(
+                            challenge = registrationChallenge.base64Encode(),
+                            signature = registrationSignature.base64Encode(),
+                            certificateChain = certificateChain.map { it.encoded.base64Encode() },
+                        )
+                    )
+                }
+
+                // Advance time, so the device almost expires
+                advanceTimeBy(5.seconds)
+
+                // Login challenge
+                val loginChallenge = jsonClient.post("/v1/auth/challenge")
+                    .body<ChallengeResponse>().challenge.base64Decode()
+
+                // Login
+                val loginSignature = Certs.leafKey.private.sign(loginChallenge)
+                val publicKey = Certs.leafKey.public
+                val res = jsonClient.post("/v1/auth/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody(
+                        LoginRequest(
+                            challenge = loginChallenge.base64Encode(),
+                            signature = loginSignature.base64Encode(),
+                            publicKey = publicKey.encoded.base64Encode(),
+                        )
+                    )
+                }
+                assertEquals(HttpStatusCode.OK, res.status)
+
+                // Advance time, so the device would expire if the expiration wasn't refreshed
+                advanceTimeBy(5.seconds)
+
+                // Login challenge
+                val loginChallenge2 = jsonClient.post("/v1/auth/challenge")
+                    .body<ChallengeResponse>().challenge.base64Decode()
+
+                // Login
+                val loginSignature2 = Certs.leafKey.private.sign(loginChallenge2)
+                val res2 = jsonClient.post("/v1/auth/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody(
+                        LoginRequest(
+                            challenge = loginChallenge2.base64Encode(),
+                            signature = loginSignature2.base64Encode(),
+                            publicKey = publicKey.encoded.base64Encode(),
+                        )
+                    )
+                }
+                assertEquals(HttpStatusCode.OK, res2.status)
+            }
+        }
+
     // TODO Test token expiration
 }
