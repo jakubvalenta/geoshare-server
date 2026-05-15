@@ -1,9 +1,5 @@
 [versions]
 bouncyCastle = "1.78.1"
-exposed = "1.2.0"
-h2 = "2.4.240"
-hikaricp = "4.0.3"
-junixsocket = "2.5.1"
 kotlin = "2.3.20"
 kotlinxCoroutines = "1.10.2"
 lettuce = "6.7.1.RELEASE"
@@ -12,18 +8,13 @@ netty = "4.2.12.Final"
 protobuf = "4.28.3"
 
 [libraries]
-exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
-exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
-h2 = { module = "com.h2database:h2", version.ref = "h2" }
-hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
-junixsocket-core = { module = "com.kohlschutter.junixsocket:junixsocket-core", version.ref = "junixsocket" }
-kotlinx-coroutines-reactive = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactive", version.ref = "kotlinxCoroutines" }
+bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle" }
 keyattestation = { module = "com.android:keyattestation" }
+kotlinx-coroutines-reactive = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactive", version.ref = "kotlinxCoroutines" }
 lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 netty-transport-native-epoll = { module = "io.netty:netty-transport-native-epoll", version.ref = "netty" }
 protobuf-kotlin-lite = { module = "com.google.protobuf:protobuf-kotlin-lite", version.ref = "protobuf" }
-bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
