@@ -28,6 +28,7 @@ dependencies {
     implementation(ktorLibs.server.rateLimit)
     implementation(ktorLibs.server.resources)
     implementation(ktorLibs.server.statusPages)
+    implementation(libs.bouncycastle.bcpkix)
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.hikaricp)
@@ -36,7 +37,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.reactive)
     implementation(libs.lettuce.core)
     implementation(libs.logback.classic)
-    implementation(libs.postgresql)
+    implementation(libs.protobuf.kotlin.lite)
     implementation(variantOf(libs.netty.transport.native.epoll) { classifier("linux-x86_64") } )
 
     testImplementation(kotlin("test"))

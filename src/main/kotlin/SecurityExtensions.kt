@@ -7,7 +7,6 @@ import java.security.PublicKey
 import java.security.Signature
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
-import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 
 fun ByteArray.readCertificateFromDEROrPEM(): X509Certificate =
@@ -17,10 +16,6 @@ fun ByteArray.readCertificateFromDEROrPEM(): X509Certificate =
 fun ByteArray.readPublicKeyFromDER(): PublicKey =
     KeyFactory.getInstance("EC")
         .generatePublic(X509EncodedKeySpec(this))
-
-fun ByteArray.readPrivateKeyFromPKCS8(): PrivateKey =
-    KeyFactory.getInstance("EC")
-        .generatePrivate(PKCS8EncodedKeySpec(this))
 
 fun PublicKey.fingerprint(): String =
     MessageDigest.getInstance("SHA-256")

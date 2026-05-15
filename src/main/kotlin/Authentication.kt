@@ -1,10 +1,8 @@
 package net.geoshare_app
 
-import com.android.keyattestation.verifier.GoogleTrustAnchors
 import com.android.keyattestation.verifier.VerificationResult
 import com.android.keyattestation.verifier.VerifiedBootState
 import com.android.keyattestation.verifier.Verifier
-import com.android.keyattestation.verifier.challengecheckers.ChallengeMatcher
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.HttpStatusCode
@@ -21,7 +19,6 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.serialization.Serializable
 import java.security.SecureRandom
-import java.time.Instant
 import java.util.Date
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -52,17 +49,12 @@ private fun createToken(publicKeyFingerprint: String, jwtSecret: String, expire:
         .sign(Algorithm.HMAC256(jwtSecret))
 
 @Suppress("unused")
-fun Application.authenticationModule(cache: Cache) {
+fun Application.authenticationModule(cache: Cache, verifier: Verifier) {
     val deviceExpire = 90.days
     val tokenExpire = 24.hours
     val jwtSecret = environment.config.property("jwt.secret").getString()
 
     val secureRandom = SecureRandom()
-    val verifier = Verifier(
-        GoogleTrustAnchors,
-        { setOf() }, // TODO Revoked serials source
-        { Instant.now() },
-    )
 
     install(Authentication) {
         jwt {
@@ -79,11 +71,10 @@ fun Application.authenticationModule(cache: Cache) {
     routing {
         rateLimit {
             post("/v1/auth/challenge") {
-                val randomBytes = ByteArray(32).also { secureRandom.nextBytes(it) }
-                val challenge = randomBytes.base64Encode()
+                val challenge = ByteArray(32).also { secureRandom.nextBytes(it) }
                 val challengeCacheKey = challenge.sha256Hex()
                 cache.set("challenge:$challengeCacheKey", "", 2.minutes)
-                val res = ChallengeResponse(challenge)
+                val res = ChallengeResponse(challenge.base64Encode())
                 call.respond(res)
             }
         }
@@ -101,8 +92,7 @@ fun Application.authenticationModule(cache: Cache) {
                 } else {
                     // Validate certificate chain
                     val certificateChain = req.certificateChain.map { it.base64Decode().readCertificateFromDEROrPEM() }
-                    val challengeChecker = ChallengeMatcher(challenge)
-                    when (val verificationResult = verifier.verify(certificateChain, challengeChecker)) {
+                    when (val verificationResult = verifier.verify(certificateChain)) {
                         is VerificationResult.Success -> {
                             when (verificationResult.verifiedBootState) {
                                 VerifiedBootState.VERIFIED -> {
@@ -132,7 +122,7 @@ fun Application.authenticationModule(cache: Cache) {
                         }
 
                         is VerificationResult.ChallengeMismatch ->
-                            ErrorResponse("Invalid certificate chain")
+                            ErrorResponse("Challenge mismatch")
 
                         is VerificationResult.PathValidationFailure ->
                             ErrorResponse("Path validation failure chain")
@@ -152,7 +142,7 @@ fun Application.authenticationModule(cache: Cache) {
                 }
 
                 when (res) {
-                    is ErrorResponse -> call.respond(HttpStatusCode.Unauthorized, res)
+                    is ErrorResponse -> call.respond(HttpStatusCode.Unauthorized, res.message)
                     is TokenResponse -> call.respond(res)
                 }
             }

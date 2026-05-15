@@ -6,8 +6,7 @@ import io.ktor.server.testing.testApplication
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class ApplicationTest : BaseTest {
-
+class ApplicationTest {
     @Test
     fun `root route returns 404`() = testApplication {
         configure("application-test.conf")

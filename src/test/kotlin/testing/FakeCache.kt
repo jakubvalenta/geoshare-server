@@ -1,6 +1,9 @@
-package net.geoshare_app
+package net.geoshare_app.testing
 
 import kotlinx.serialization.json.Json
+import net.geoshare_app.Cache
+import net.geoshare_app.Location
+import net.geoshare_app.sha256Hex
 import kotlin.time.Duration
 
 class FakeCache : Cache {
@@ -13,7 +16,7 @@ class FakeCache : Cache {
 
     override suspend fun get(key: String) =
         map[key]?.let { item ->
-            item.value.takeIf { item.expireAtMillis == null || item.expireAtMillis < System.currentTimeMillis() }
+            item.value.takeIf { item.expireAtMillis == null || item.expireAtMillis > System.currentTimeMillis() }
         }
 
     override suspend fun set(key: String, value: String, expire: Duration) {

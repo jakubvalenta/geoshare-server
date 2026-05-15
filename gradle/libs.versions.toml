@@ -1,4 +1,5 @@
 [versions]
+bouncyCastle = "1.78.1"
 exposed = "1.2.0"
 h2 = "2.4.240"
 hikaricp = "4.0.3"
@@ -8,7 +9,7 @@ kotlinxCoroutines = "1.10.2"
 lettuce = "6.7.1.RELEASE"
 logback = "1.5.21"
 netty = "4.2.12.Final"
-postgresql = "42.7.5"
+protobuf = "4.28.3"
 
 [libraries]
 exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
@@ -21,7 +22,8 @@ keyattestation = { module = "com.android:keyattestation" }
 lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 netty-transport-native-epoll = { module = "io.netty:netty-transport-native-epoll", version.ref = "netty" }
-postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+protobuf-kotlin-lite = { module = "com.google.protobuf:protobuf-kotlin-lite", version.ref = "protobuf" }
+bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
