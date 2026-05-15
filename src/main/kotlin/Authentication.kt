@@ -159,7 +159,7 @@ fun Application.authenticationModule(cache: Cache, verifier: Verifier) {
                 val res = if (cache.get("challenge:$challengeCacheKey") == null) {
                     ErrorResponse("Invalid challenge")
                 } else {
-                    // Validate public key is registered
+                    // Validate device
                     val publicKey = req.publicKey.base64Decode().readPublicKeyFromDER()
                     val publicKeyFingerprint = publicKey.fingerprint()
                     if (cache.get("device:$publicKeyFingerprint") == null) {
@@ -180,7 +180,10 @@ fun Application.authenticationModule(cache: Cache, verifier: Verifier) {
                     }
                 }
 
-                call.respond(res)
+                when (res) {
+                    is ErrorResponse -> call.respond(HttpStatusCode.Unauthorized, res.message)
+                    is TokenResponse -> call.respond(res)
+                }
             }
         }
     }
