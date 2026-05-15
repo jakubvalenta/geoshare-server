@@ -13,7 +13,7 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import kotlin.time.Duration.Companion.days
 
-@Resource("/google-maps/geocode/places/{id}")
+@Resource("/v1/google-maps/geocode/places/{id}")
 private class PlaceResource(val id: String)
 
 @Suppress("unused")
