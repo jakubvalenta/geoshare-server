@@ -651,6 +651,4 @@ class AuthenticationTest {
                 assertEquals(HttpStatusCode.OK, res2.status)
             }
         }
-
-    // TODO Test token expiration
 }
