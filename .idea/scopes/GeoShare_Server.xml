@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="GeoShare Server" pattern="(file[GeoShare_Server.main]:*/||file[GeoShare_Server.test]:*/||file[GeoShare_Server]:*/)&amp;&amp;!file[GeoShare_Server]:.idea//*&amp;&amp;!file[GeoShare_Server]:gradle//*&amp;&amp;!file[GeoShare_Server]:gradlew&amp;&amp;!file[GeoShare_Server]:gradlew.bat&amp;&amp;!file[GeoShare_Server]:COPYING&amp;&amp;!file[GeoShare_Server]:NOTICE&amp;&amp;!file[GeoShare_Server]:.gitmodules" />
+</component>

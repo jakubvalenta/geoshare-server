@@ -10,14 +10,14 @@ import kotlin.time.Duration.Companion.minutes
 object Tokens {
     const val JWT_SECRET = "test-secret"
 
-    val valid by lazy {
+    val valid: String by lazy {
         JWT.create()
             .withSubject(Certs.leafKey.public.fingerprint())
             .withExpiresAt(Date(System.currentTimeMillis() + 1.minutes.inWholeMilliseconds))
             .sign(Algorithm.HMAC256(JWT_SECRET))
     }
 
-    val expired by lazy {
+    val expired: String by lazy {
         JWT.create()
             .withSubject(Certs.leafKey.public.fingerprint())
             .withExpiresAt(Date(System.currentTimeMillis() - 1.minutes.inWholeMilliseconds))
