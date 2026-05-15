@@ -21,9 +21,7 @@ import kotlinx.serialization.Serializable
 import java.security.SecureRandom
 import java.util.Date
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 @Serializable
 data class ChallengeResponse(val challenge: String)
@@ -42,7 +40,7 @@ data class ErrorResponse(val message: String) : AuthenticationResponse
 @Serializable
 data class TokenResponse(val token: String) : AuthenticationResponse
 
-private fun createToken(publicKeyFingerprint: String, jwtSecret: String, expire: Duration = 24.hours): String =
+private fun createToken(publicKeyFingerprint: String, jwtSecret: String, expire: Duration): String =
     JWT.create()
         .withSubject(publicKeyFingerprint)
         .withExpiresAt(Date(System.currentTimeMillis() + expire.inWholeMilliseconds))
@@ -50,9 +48,10 @@ private fun createToken(publicKeyFingerprint: String, jwtSecret: String, expire:
 
 @Suppress("unused")
 fun Application.authenticationModule(cache: Cache, verifier: Verifier) {
-    val deviceExpire = 90.days
-    val tokenExpire = 24.hours
-    val jwtSecret = environment.config.property("jwt.secret").getString()
+    val challengeExpire = environment.config.property("auth.challenge.expireSec").getString().toInt().seconds
+    val deviceExpire = environment.config.property("auth.device.expireSec").getString().toInt().seconds
+    val jwtExpire = environment.config.property("auth.jwt.expireSec").getString().toInt().seconds
+    val jwtSecret = environment.config.property("auth.jwt.secret").getString()
 
     val secureRandom = SecureRandom()
 
@@ -73,7 +72,7 @@ fun Application.authenticationModule(cache: Cache, verifier: Verifier) {
             post("/v1/auth/challenge") {
                 val challenge = ByteArray(32).also { secureRandom.nextBytes(it) }
                 val challengeCacheKey = challenge.sha256Hex()
-                cache.set("challenge:$challengeCacheKey", "", 2.minutes)
+                cache.set("challenge:$challengeCacheKey", "", challengeExpire)
                 val res = ChallengeResponse(challenge.base64Encode())
                 call.respond(res)
             }
@@ -100,7 +99,7 @@ fun Application.authenticationModule(cache: Cache, verifier: Verifier) {
                                     if (verificationResult.publicKey.verifySignature(signature, challenge)) {
                                         // Generate token
                                         val publicKeyFingerprint = verificationResult.publicKey.fingerprint()
-                                        val token = createToken(publicKeyFingerprint, jwtSecret, tokenExpire)
+                                        val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire)
                                         // Register device before deleting the challenge, so the client can retry if
                                         // device registration crashes
                                         cache.set("device:$publicKeyFingerprint", "", deviceExpire)
@@ -167,7 +166,7 @@ fun Application.authenticationModule(cache: Cache, verifier: Verifier) {
                     } else {
                         // Validate signature
                         if (publicKey.verifySignature(signature, challenge)) {
-                            val token = createToken(publicKeyFingerprint, jwtSecret, tokenExpire)
+                            val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire)
                             // Refresh device TTL, so active devices never expire
                             cache.expire("device:$publicKeyFingerprint", deviceExpire)
                             // Delete challenge only after all validations pass, so the client can retry if anything

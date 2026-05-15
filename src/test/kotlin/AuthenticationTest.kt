@@ -37,7 +37,7 @@ class AuthenticationTest {
                 RegisterRequest(
                     challenge = registrationChallenge.base64Encode(),
                     signature = registrationSignature.base64Encode(),
-                    certificateChain = certificateChain.map { it.encoded.base64Encode() }
+                    certificateChain = certificateChain.map { it.encoded.base64Encode() },
                 )
             )
         }
@@ -62,7 +62,7 @@ class AuthenticationTest {
                 RegisterRequest(
                     challenge = registrationChallenge.base64Encode(),
                     signature = registrationSignature.base64Encode(),
-                    certificateChain = certificateChain.map { it.encoded.base64Encode() }
+                    certificateChain = certificateChain.map { it.encoded.base64Encode() },
                 )
             )
         }
@@ -87,7 +87,7 @@ class AuthenticationTest {
                 RegisterRequest(
                     challenge = registrationChallenge.base64Encode(),
                     signature = registrationSignature.base64Encode(),
-                    certificateChain = certificateChain.map { it.encoded.base64Encode() }
+                    certificateChain = certificateChain.map { it.encoded.base64Encode() },
                 )
             )
         }
@@ -112,7 +112,7 @@ class AuthenticationTest {
                 RegisterRequest(
                     challenge = registrationChallenge.base64Encode(),
                     signature = registrationSignature.base64Encode(),
-                    certificateChain = certificateChain.map { it.encoded.base64Encode() }
+                    certificateChain = certificateChain.map { it.encoded.base64Encode() },
                 )
             )
         }
@@ -129,7 +129,7 @@ class AuthenticationTest {
                 RegisterRequest(
                     challenge = registrationChallenge.base64Encode(),
                     signature = registrationSignature.base64Encode(),
-                    certificateChain = certificateChain.map { it.encoded.base64Encode() }
+                    certificateChain = certificateChain.map { it.encoded.base64Encode() },
                 )
             )
         }
@@ -154,7 +154,7 @@ class AuthenticationTest {
                 RegisterRequest(
                     challenge = registrationChallenge.base64Encode(),
                     signature = registrationSignature.base64Encode(),
-                    certificateChain = certificateChain.map { it.encoded.base64Encode() }
+                    certificateChain = certificateChain.map { it.encoded.base64Encode() },
                 )
             )
         }
