@@ -7,6 +7,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.application.log
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
@@ -16,6 +17,9 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import java.security.SecureRandom
 import java.util.Date
@@ -45,15 +49,28 @@ private fun createToken(publicKeyFingerprint: String, jwtSecret: String, expire:
         .withExpiresAt(Date(System.currentTimeMillis() + expire.inWholeMilliseconds))
         .sign(Algorithm.HMAC256(jwtSecret))
 
-@Suppress("unused")
 fun Application.authenticationModule(cache: Cache, certificateVerification: CertificateVerification) {
-    // TODO Flatten config properties
-    val challengeExpire = environment.config.property("auth.challenge.expireSec").getString().toInt().seconds
-    val deviceExpire = environment.config.property("auth.device.expireSec").getString().toInt().seconds
-    val jwtExpire = environment.config.property("auth.jwt.expireSec").getString().toInt().seconds
-    val jwtSecret = environment.config.property("auth.jwt.secret").getString()
+    val challengeExpire = environment.config.property("auth.challengeExpireSec").getString().toInt().seconds
+    val deviceExpire = environment.config.property("auth.deviceExpireSec").getString().toInt().seconds
+    val jwtExpire = environment.config.property("auth.jwtExpireSec").getString().toInt().seconds
+    val jwtSecret = environment.config.property("auth.jwtSecret").getString()
+    val revocationListRefreshInterval = environment.config.property("auth.revocationListRefreshIntervalSec")
+        .getString().toInt().seconds
 
     val secureRandom = SecureRandom()
+
+    launch {
+        while (isActive) {
+            try {
+                log.info("Refreshing revoked certificates")
+                certificateVerification.refreshRevokedSerials()
+            } catch (e: Exception) {
+                log.error("Failed to refresh revoked certificates", e)
+            }
+            // Don't wrap delay in try-catch, so that the launched coroutine can be canceled
+            delay(revocationListRefreshInterval)
+        }
+    }
 
     install(Authentication) {
         jwt {

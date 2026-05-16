@@ -14,7 +14,6 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-@Suppress("unused")
 fun Application.rootModule() {
     install(ContentNegotiation) {
         json()

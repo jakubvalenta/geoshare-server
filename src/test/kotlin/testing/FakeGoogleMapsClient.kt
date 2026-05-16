@@ -26,6 +26,3 @@ class FakeGoogleMapsClient : GoogleMapsClient {
         const val NOT_FOUND_CACHED_PLACE_ID = "not-found-cached"
     }
 }
-
-@Suppress("unused")
-fun provideFakeGoogleMapsClient(): GoogleMapsClient = FakeGoogleMapsClient()

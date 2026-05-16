@@ -9,6 +9,7 @@ import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.testing.testApplication
 import net.geoshare_app.testing.FakeCache
 import net.geoshare_app.testing.FakeGoogleMapsClient
+import net.geoshare_app.testing.TestCertificateVerification
 import net.geoshare_app.testing.Tokens
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,12 +23,7 @@ class GoogleMapsTest {
         application {
             val cache = FakeCache()
             rootModule()
-            authenticationModule(
-                cache = cache,
-                certificateVerification = provideCertificateVerification(
-                    certificateRevocation = provideCertificateRevocation(cache),
-                ),
-            )
+            authenticationModule(cache, TestCertificateVerification(cache))
             googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 
@@ -43,12 +39,7 @@ class GoogleMapsTest {
         application {
             val cache = FakeCache()
             rootModule()
-            authenticationModule(
-                cache = cache,
-                certificateVerification = provideCertificateVerification(
-                    certificateRevocation = provideCertificateRevocation(cache),
-                ),
-            )
+            authenticationModule(cache, TestCertificateVerification(cache))
             googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 
@@ -67,12 +58,7 @@ class GoogleMapsTest {
         application {
             val cache = FakeCache()
             rootModule()
-            authenticationModule(
-                cache = cache,
-                certificateVerification = provideCertificateVerification(
-                    certificateRevocation = provideCertificateRevocation(cache),
-                ),
-            )
+            authenticationModule(cache, TestCertificateVerification(cache))
             googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 
@@ -91,12 +77,7 @@ class GoogleMapsTest {
         application {
             val cache = FakeCache()
             rootModule()
-            authenticationModule(
-                cache = cache,
-                certificateVerification = provideCertificateVerification(
-                    certificateRevocation = provideCertificateRevocation(cache),
-                ),
-            )
+            authenticationModule(cache, TestCertificateVerification(cache))
             googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 
@@ -116,12 +97,7 @@ class GoogleMapsTest {
         application {
             val cache = FakeCache()
             rootModule()
-            authenticationModule(
-                cache = cache,
-                certificateVerification = provideCertificateVerification(
-                    certificateRevocation = provideCertificateRevocation(cache),
-                ),
-            )
+            authenticationModule(cache, TestCertificateVerification(cache))
             googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 
@@ -141,12 +117,7 @@ class GoogleMapsTest {
         application {
             val cache = FakeCache()
             rootModule()
-            authenticationModule(
-                cache = cache,
-                certificateVerification = provideCertificateVerification(
-                    certificateRevocation = provideCertificateRevocation(cache),
-                ),
-            )
+            authenticationModule(cache, TestCertificateVerification(cache))
             googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 
@@ -166,12 +137,7 @@ class GoogleMapsTest {
         application {
             val cache = FakeCache()
             rootModule()
-            authenticationModule(
-                cache = cache,
-                certificateVerification = provideCertificateVerification(
-                    certificateRevocation = provideCertificateRevocation(cache),
-                ),
-            )
+            authenticationModule(cache, TestCertificateVerification(cache))
             googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 

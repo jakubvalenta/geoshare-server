@@ -2,21 +2,21 @@ package net.geoshare_app.testing
 
 import com.android.keyattestation.verifier.Verifier
 import com.android.keyattestation.verifier.testing.Certs
-import net.geoshare_app.CertificateRevocation
+import net.geoshare_app.Cache
 import net.geoshare_app.CertificateVerification
 import java.time.Instant
 
-class TestCertificateVerification(val certificateRevocation: CertificateRevocation) : CertificateVerification {
+class TestCertificateVerification(override val cache: Cache) : CertificateVerification {
     override suspend fun getVerifier(): Verifier {
-        val revokedSerials = certificateRevocation.getRevokedSerials()
+        val revokedSerials = getRevokedSerials()
         return Verifier(
             { setOf(Certs.rootAnchor) },
             { revokedSerials },
             { Instant.now() },
         )
     }
-}
 
-@Suppress("unused")
-fun provideCertificateVerification(certificateRevocation: CertificateRevocation): CertificateVerification =
-    TestCertificateVerification(certificateRevocation)
+    override suspend fun refreshRevokedSerials() {
+        setRevokedSerials(setOf(CertLists.REVOKED_SERIAL_NUMBER.toString(16)))
+    }
+}

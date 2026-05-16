@@ -39,6 +39,3 @@ class FakeCache(private val timeSource: TimeSource = TimeSource.Monotonic) : Cac
 
     override fun close() {}
 }
-
-@Suppress("unused")
-fun provideFakeCache(): Cache = FakeCache()

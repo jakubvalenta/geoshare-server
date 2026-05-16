@@ -16,7 +16,6 @@ import kotlin.time.Duration.Companion.days
 @Resource("/v1/google-maps/geocode/places/{id}")
 private class PlaceResource(val id: String)
 
-@Suppress("unused")
 fun Application.googleMapsModule(cache: Cache, googleMapsClient: GoogleMapsClient) {
     val googleMapsApiKey = environment.config.propertyOrNull("googleMaps.apiKey")?.getString()
         ?: File(environment.config.property("googleMaps.apiKeyFile").getString()).readText()
