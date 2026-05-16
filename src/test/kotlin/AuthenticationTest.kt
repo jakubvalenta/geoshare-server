@@ -16,7 +16,8 @@ import net.geoshare_app.testing.Certs
 import net.geoshare_app.testing.FakeCache
 import net.geoshare_app.testing.Tokens
 import net.geoshare_app.testing.jsonClient
-import net.geoshare_app.testing.provideVerifier
+import net.geoshare_app.testing.provideCertificateRevocation
+import net.geoshare_app.testing.provideCertificateVerification
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
@@ -29,8 +30,14 @@ class AuthenticationTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
         }
 
         val res = jsonClient.post("/v1/auth/challenge")
@@ -44,8 +51,14 @@ class AuthenticationTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
         }
 
         // Register
@@ -72,8 +85,14 @@ class AuthenticationTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
         }
 
         // Registration challenge
@@ -121,8 +140,14 @@ class AuthenticationTest {
                 config = ApplicationConfig("application-test.conf")
             }
             application {
+                val cache = FakeCache(testScheduler.timeSource)
                 rootModule()
-                authenticationModule(cache = FakeCache(testScheduler.timeSource), verifier = provideVerifier())
+                authenticationModule(
+                    cache = cache,
+                    certificateVerification = provideCertificateVerification(
+                        certificateRevocation = provideCertificateRevocation(cache),
+                    ),
+                )
             }
 
             // Registration challenge
@@ -155,8 +180,14 @@ class AuthenticationTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
         }
 
         // Registration challenge
@@ -186,8 +217,14 @@ class AuthenticationTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
         }
 
         // Registration challenge
@@ -212,13 +249,56 @@ class AuthenticationTest {
     }
 
     @Test
+    fun `register route when certificate has been revoked returns 401`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.conf")
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
+        }
+
+        // Registration challenge
+        val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+            .body<ChallengeResponse>().challenge.base64Decode()
+
+        // Register
+        val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
+        val certificateChain = CertLists.revoked
+        val res = jsonClient.post("/v1/auth/register") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                RegisterRequest(
+                    challenge = registrationChallenge.base64Encode(),
+                    signature = registrationSignature.base64Encode(),
+                    certificateChain = certificateChain.map { it.encoded.base64Encode() },
+                )
+            )
+        }
+        assertEquals(HttpStatusCode.Unauthorized, res.status)
+        assertEquals("Path validation failure chain", res.body())
+    }
+
+    @Test
     fun `register route when signature is valid returns token`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
         }
 
         // Registration challenge
@@ -251,8 +331,14 @@ class AuthenticationTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
         }
 
         // Login
@@ -279,8 +365,14 @@ class AuthenticationTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
         }
 
         // Registration challenge
@@ -346,8 +438,14 @@ class AuthenticationTest {
                 config = ApplicationConfig("application-test.conf")
             }
             application {
+                val cache = FakeCache(testScheduler.timeSource)
                 rootModule()
-                authenticationModule(cache = FakeCache(testScheduler.timeSource), verifier = provideVerifier())
+                authenticationModule(
+                    cache = cache,
+                    certificateVerification = provideCertificateVerification(
+                        certificateRevocation = provideCertificateRevocation(cache),
+                    ),
+                )
             }
 
             // Registration challenge
@@ -398,8 +496,14 @@ class AuthenticationTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
         }
 
         // Login challenge
@@ -430,8 +534,14 @@ class AuthenticationTest {
                 config = ApplicationConfig("application-test.conf")
             }
             application {
+                val cache = FakeCache(testScheduler.timeSource)
                 rootModule()
-                authenticationModule(cache = FakeCache(testScheduler.timeSource), verifier = provideVerifier())
+                authenticationModule(
+                    cache = cache,
+                    certificateVerification = provideCertificateVerification(
+                        certificateRevocation = provideCertificateRevocation(cache),
+                    ),
+                )
             }
 
             // Registration challenge
@@ -482,8 +592,14 @@ class AuthenticationTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
         }
 
         // Registration challenge
@@ -531,8 +647,14 @@ class AuthenticationTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
         }
 
         // Registration challenge
@@ -585,8 +707,16 @@ class AuthenticationTest {
                     config = ApplicationConfig("application-test.conf")
                 }
                 application {
+                    val cache = FakeCache(testScheduler.timeSource)
                     rootModule()
-                    authenticationModule(cache = FakeCache(testScheduler.timeSource), verifier = provideVerifier())
+                    authenticationModule(
+                        cache = cache,
+                        certificateVerification = provideCertificateVerification(
+                            certificateRevocation = provideCertificateRevocation(
+                                cache = cache,
+                            ),
+                        )
+                    )
                 }
 
                 // Registration challenge

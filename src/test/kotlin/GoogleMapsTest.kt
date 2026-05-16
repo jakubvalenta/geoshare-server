@@ -20,9 +20,15 @@ class GoogleMapsTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
-            googleMapsModule(cache = FakeCache(), googleMapsClient = FakeGoogleMapsClient())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
+            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 
         val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT_PLACE_ID}")
@@ -35,9 +41,15 @@ class GoogleMapsTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
-            googleMapsModule(cache = FakeCache(), googleMapsClient = FakeGoogleMapsClient())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
+            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 
         val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT_PLACE_ID}") {
@@ -53,9 +65,15 @@ class GoogleMapsTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
-            googleMapsModule(cache = FakeCache(), googleMapsClient = FakeGoogleMapsClient())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
+            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 
         val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.NOT_FOUND_PLACE_ID}") {
@@ -71,9 +89,15 @@ class GoogleMapsTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
-            googleMapsModule(cache = FakeCache(), googleMapsClient = FakeGoogleMapsClient())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
+            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 
         val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.NOT_FOUND_CACHED_PLACE_ID}") {
@@ -90,9 +114,15 @@ class GoogleMapsTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
-            googleMapsModule(cache = FakeCache(), googleMapsClient = FakeGoogleMapsClient())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
+            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 
         val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT_PLACE_ID}") {
@@ -109,9 +139,15 @@ class GoogleMapsTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
-            googleMapsModule(cache = FakeCache(), googleMapsClient = FakeGoogleMapsClient())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
+            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 
         val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.INVALID_RESPONSE_PLACE_ID}") {
@@ -128,9 +164,15 @@ class GoogleMapsTest {
             config = ApplicationConfig("application-test.conf")
         }
         application {
+            val cache = FakeCache()
             rootModule()
-            authenticationModule(cache = FakeCache(), verifier = provideVerifier())
-            googleMapsModule(cache = FakeCache(), googleMapsClient = FakeGoogleMapsClient())
+            authenticationModule(
+                cache = cache,
+                certificateVerification = provideCertificateVerification(
+                    certificateRevocation = provideCertificateRevocation(cache),
+                ),
+            )
+            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
         }
 
         for (ip in listOf(null, "10.10.10.1", "10.10.10.2")) {

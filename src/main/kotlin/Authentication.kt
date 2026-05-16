@@ -2,7 +2,6 @@ package net.geoshare_app
 
 import com.android.keyattestation.verifier.VerificationResult
 import com.android.keyattestation.verifier.VerifiedBootState
-import com.android.keyattestation.verifier.Verifier
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.HttpStatusCode
@@ -47,7 +46,8 @@ private fun createToken(publicKeyFingerprint: String, jwtSecret: String, expire:
         .sign(Algorithm.HMAC256(jwtSecret))
 
 @Suppress("unused")
-fun Application.authenticationModule(cache: Cache, verifier: Verifier) {
+fun Application.authenticationModule(cache: Cache, certificateVerification: CertificateVerification) {
+    // TODO Flatten config properties
     val challengeExpire = environment.config.property("auth.challenge.expireSec").getString().toInt().seconds
     val deviceExpire = environment.config.property("auth.device.expireSec").getString().toInt().seconds
     val jwtExpire = environment.config.property("auth.jwt.expireSec").getString().toInt().seconds
@@ -90,6 +90,7 @@ fun Application.authenticationModule(cache: Cache, verifier: Verifier) {
                     ErrorResponse("Invalid challenge")
                 } else {
                     // Validate certificate chain
+                    val verifier = certificateVerification.getVerifier()
                     val certificateChain = req.certificateChain.map { it.base64Decode().readCertificateFromDEROrPEM() }
                     when (val verificationResult = verifier.verify(certificateChain)) {
                         is VerificationResult.Success -> {
