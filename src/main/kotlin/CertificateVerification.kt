@@ -4,24 +4,19 @@ import com.android.keyattestation.verifier.GoogleTrustAnchors
 import com.android.keyattestation.verifier.Verifier
 import com.android.keyattestation.verifier.getGoogleRevocationStatusFromWeb
 import java.time.Instant
-import kotlin.time.Duration.Companion.hours
 
 interface CertificateVerification {
     val cache: Cache
 
     suspend fun getVerifier(): Verifier
 
-    suspend fun refreshRevokedSerials()
+    suspend fun fetchRevokedSerials(): Set<String>
 
     suspend fun getRevokedSerials(): Set<String> =
         cache.get(REVOKED_SERIALS_CACHE_KEY)?.split(REVOKED_SERIALS_CACHE_VALUE_SEPARATOR)?.toSet() ?: emptySet()
 
     suspend fun setRevokedSerials(revokedSerials: Set<String>) {
-        cache.set(
-            REVOKED_SERIALS_CACHE_KEY,
-            revokedSerials.joinToString(REVOKED_SERIALS_CACHE_VALUE_SEPARATOR),
-            24.hours,
-        )
+        cache.set(REVOKED_SERIALS_CACHE_KEY, revokedSerials.joinToString(REVOKED_SERIALS_CACHE_VALUE_SEPARATOR))
     }
 
     private companion object {
@@ -43,9 +38,7 @@ class CertificateVerificationImpl(override val cache: Cache) : CertificateVerifi
     /**
      * @throws [Exception] Will throw exception if download fails.
      */
-    override suspend fun refreshRevokedSerials() {
-        setRevokedSerials(getGoogleRevocationStatusFromWeb())
-    }
+    override suspend fun fetchRevokedSerials() = getGoogleRevocationStatusFromWeb()
 }
 
 @Suppress("unused")

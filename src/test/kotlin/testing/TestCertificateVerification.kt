@@ -16,7 +16,5 @@ class TestCertificateVerification(override val cache: Cache) : CertificateVerifi
         )
     }
 
-    override suspend fun refreshRevokedSerials() {
-        setRevokedSerials(setOf(CertLists.REVOKED_SERIAL_NUMBER.toString(16)))
-    }
+    override suspend fun fetchRevokedSerials() = setOf(CertLists.REVOKED_SERIAL_NUMBER.toString(16))
 }

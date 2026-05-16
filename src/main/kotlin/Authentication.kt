@@ -21,6 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import java.io.File
 import java.security.SecureRandom
 import java.util.Date
 import kotlin.time.Duration
@@ -43,7 +44,7 @@ data class ErrorResponse(val message: String) : AuthenticationResponse
 @Serializable
 data class TokenResponse(val token: String) : AuthenticationResponse
 
-private fun createToken(publicKeyFingerprint: String, jwtSecret: String, expire: Duration): String =
+private fun createToken(publicKeyFingerprint: String, jwtSecret: ByteArray, expire: Duration): String =
     JWT.create()
         .withSubject(publicKeyFingerprint)
         .withExpiresAt(Date(System.currentTimeMillis() + expire.inWholeMilliseconds))
@@ -53,7 +54,8 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
     val challengeExpire = environment.config.property("auth.challengeExpireSec").getString().toInt().seconds
     val deviceExpire = environment.config.property("auth.deviceExpireSec").getString().toInt().seconds
     val jwtExpire = environment.config.property("auth.jwtExpireSec").getString().toInt().seconds
-    val jwtSecret = environment.config.property("auth.jwtSecret").getString()
+    val jwtSecret = environment.config.propertyOrNull("auth.jwtSecret")?.getString()?.toByteArray()
+        ?: File(environment.config.property("auth.jwtSecretFile").getString()).readBytes()
     val revocationListRefreshInterval = environment.config.property("auth.revocationListRefreshIntervalSec")
         .getString().toInt().seconds
 
@@ -63,7 +65,10 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
         while (isActive) {
             try {
                 log.info("Refreshing revoked certificates")
-                certificateVerification.refreshRevokedSerials()
+                certificateVerification.setRevokedSerials(
+                    certificateVerification.fetchRevokedSerials()
+                )
+                log.info("Refreshed revoked certificates")
             } catch (e: Exception) {
                 log.error("Failed to refresh revoked certificates", e)
             }

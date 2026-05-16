@@ -23,6 +23,10 @@ class FakeCache(private val timeSource: TimeSource = TimeSource.Monotonic) : Cac
             }
         }
 
+    override suspend fun set(key: String, value: String) {
+        map[key] = Item(value)
+    }
+
     override suspend fun set(key: String, value: String, expire: Duration) {
         map[key] = Item(value, timeSource.markNow(), expire)
     }

@@ -4,9 +4,8 @@
       <option name="env">
         <map>
           <entry key="CACHE_URI" value="redis-socket:///run/user/1000/redis.sock" />
-          <entry key="DATABASE_URL" value="jdbc:postgresql:geoshare-server?socketFactory=org.newsclub.net.unix.AFUNIXSocketFactory$FactoryArg&amp;socketFactoryArg=/run/postgresql/.s.PGSQL.5432" />
-          <entry key="DATABASE_USER" value="geoshare-server" />
           <entry key="GOOGLE_MAPS_API_KEY_FILE" value="secrets/google-maps-api-key" />
+          <entry key="JWT_SECRET_FILE" value="secrets/jwt-secret" />
         </map>
       </option>
       <option name="executionName" />

@@ -9,6 +9,7 @@ import kotlin.time.Duration
 
 interface Cache : AutoCloseable {
     suspend fun get(key: String): String?
+    suspend fun set(key: String, value: String)
     suspend fun set(key: String, value: String, expire: Duration)
     suspend fun delete(key: String)
     suspend fun expire(key: String, expire: Duration)
@@ -22,6 +23,10 @@ class CacheImpl(connectionUri: String) : Cache {
 
     override suspend fun get(key: String) =
         commands.get(key)
+
+    override suspend fun set(key: String, value: String) {
+        commands.set(key, value)
+    }
 
     override suspend fun set(key: String, value: String, expire: Duration) {
         commands.set(key, value, SetArgs.Builder.ex(expire.inWholeSeconds))
