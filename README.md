@@ -40,6 +40,15 @@ JWT_SECRET_FILE="secrets/jwt-secret" \
 ./gradlew run
 ```
 
+Run the application while bypassing Google Maps and returning random locations:
+
+```shell
+CACHE_URI="redis-socket:///run/user/1000/redis.sock" \
+GOOGLE_MAPS_API_KEY_FILE="secrets/google-maps-api-key" \
+JWT_SECRET_FILE="secrets/jwt-secret" \
+./gradlew run --args='-config=application-demo.conf'
+```
+
 ### Deployment
 
 Build:

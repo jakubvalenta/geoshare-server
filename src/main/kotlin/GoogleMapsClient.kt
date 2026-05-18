@@ -31,52 +31,48 @@ interface GoogleMapsClient {
 }
 
 class GoogleMapsClientImpl : GoogleMapsClient {
-    private val httpClient = HttpClient(CIO) {
+    // TODO Test geocodeAddress
+    override suspend fun geocodeAddress(apiKey: String, query: String) =
+        callGoogleMapsApi<GoogleMapsResults>(
+            "v4", "geocode", "address", query,
+            apiKey = apiKey,
+            fieldMask = "results.location",
+        )
+
+    override suspend fun geocodePlace(apiKey: String, id: String) =
+        callGoogleMapsApi<GoogleMapsResult>(
+            "v4", "geocode", "places", id,
+            apiKey = apiKey,
+            fieldMask = "location",
+        )
+}
+
+private suspend inline fun <reified T> callGoogleMapsApi(vararg path: String, apiKey: String, fieldMask: String): T =
+    HttpClient(CIO) {
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
             })
         }
         expectSuccess = true
+    }.use { client ->
+        try {
+            client.get {
+                url {
+                    url("https://geocode.googleapis.com")
+                    appendPathSegments(*path)
+                }
+                headers {
+                    append("X-Goog-Api-Key", apiKey)
+                    append("X-Goog-FieldMask", fieldMask)
+                }
+            }.body<T>()
+        } catch (tr: ClientRequestException) {
+            throw GoogleMapsException("Client request exception", tr)
+        } catch (tr: SerializationException) {
+            throw GoogleMapsException("Serialization exception", tr)
+        }
     }
-
-    // TODO Test geocodeAddress
-    override suspend fun geocodeAddress(apiKey: String, query: String) =
-        try {
-            httpClient.get {
-                url {
-                    url("https://geocode.googleapis.com")
-                    appendPathSegments("v4", "geocode", "address", query)
-                }
-                headers {
-                    append("X-Goog-Api-Key", apiKey)
-                    append("X-Goog-FieldMask", "results.location")
-                }
-            }.body<GoogleMapsResults>()
-        } catch (tr: ClientRequestException) {
-            throw GoogleMapsException("Client request exception", tr)
-        } catch (tr: SerializationException) {
-            throw GoogleMapsException("Serialization exception", tr)
-        }
-
-    override suspend fun geocodePlace(apiKey: String, id: String) =
-        try {
-            httpClient.get {
-                url {
-                    url("https://geocode.googleapis.com")
-                    appendPathSegments("v4", "geocode", "places", id)
-                }
-                headers {
-                    append("X-Goog-Api-Key", apiKey)
-                    append("X-Goog-FieldMask", "location")
-                }
-            }.body<GoogleMapsResult>()
-        } catch (tr: ClientRequestException) {
-            throw GoogleMapsException("Client request exception", tr)
-        } catch (tr: SerializationException) {
-            throw GoogleMapsException("Serialization exception", tr)
-        }
-}
 
 @Suppress("unused")
 fun provideGoogleMapsClient(): GoogleMapsClient = GoogleMapsClientImpl()
