@@ -1,9 +1,6 @@
 package net.geoshare_app.testing
 
-import kotlinx.serialization.json.Json
 import net.geoshare_app.Cache
-import net.geoshare_app.Location
-import net.geoshare_app.sha256Hex
 import kotlin.time.Duration
 import kotlin.time.TimeMark
 import kotlin.time.TimeSource
@@ -11,10 +8,7 @@ import kotlin.time.TimeSource
 class FakeCache(private val timeSource: TimeSource = TimeSource.Monotonic) : Cache {
     private data class Item(val value: String, val timeMark: TimeMark? = null, val expire: Duration? = null)
 
-    private val map: MutableMap<String, Item> = mutableMapOf(
-        FakeGoogleMapsClient.NOT_FOUND_CACHED_PLACE_ID.sha256Hex() to
-            Item(Json.encodeToString(Location(22.22, 111.11)))
-    )
+    private val map: MutableMap<String, Item> = mutableMapOf()
 
     override suspend fun get(key: String) =
         map[key]?.let { item ->

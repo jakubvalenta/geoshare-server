@@ -24,10 +24,10 @@ class GoogleMapsTest {
             val cache = FakeCache()
             rootModule()
             authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
+            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT_PLACE_ID}")
+        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT}")
         assertEquals(HttpStatusCode.Unauthorized, res.status)
     }
 
@@ -40,10 +40,10 @@ class GoogleMapsTest {
             val cache = FakeCache()
             rootModule()
             authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
+            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT_PLACE_ID}") {
+        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
             headers["Authorization"] = "Bearer ${Tokens.expired}"
             accept(ContentType.Application.Json)
         }
@@ -59,34 +59,14 @@ class GoogleMapsTest {
             val cache = FakeCache()
             rootModule()
             authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
+            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.NOT_FOUND_PLACE_ID}") {
+        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.NOT_FOUND}") {
             headers["Authorization"] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.NotFound, res.status)
-    }
-
-    @Test
-    fun `geocode place id route when google api returns 404 but place id is cached returns 200`() = testApplication {
-        environment {
-            config = ApplicationConfig("application-test.conf")
-        }
-        application {
-            val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
-        }
-
-        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.NOT_FOUND_CACHED_PLACE_ID}") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.OK, res.status)
-        assertEquals("""{"latitude":22.22,"longitude":111.11}""", res.bodyAsText())
     }
 
     @Test
@@ -98,15 +78,15 @@ class GoogleMapsTest {
             val cache = FakeCache()
             rootModule()
             authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
+            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT_PLACE_ID}") {
+        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
             headers["Authorization"] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.OK, res.status)
-        assertEquals("""{"latitude":50.12345,"longitude":-11.12345}""", res.bodyAsText())
+        assertEquals("""{"location":{"latitude":50.12345,"longitude":-11.12345}}""", res.bodyAsText())
     }
 
     @Test
@@ -118,10 +98,10 @@ class GoogleMapsTest {
             val cache = FakeCache()
             rootModule()
             authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
+            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.INVALID_RESPONSE_PLACE_ID}") {
+        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.INVALID_RESPONSE}") {
             headers["Authorization"] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
@@ -138,12 +118,12 @@ class GoogleMapsTest {
             val cache = FakeCache()
             rootModule()
             authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(cache = cache, googleMapsClient = FakeGoogleMapsClient())
+            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
         for (ip in listOf(null, "10.10.10.1", "10.10.10.2")) {
             repeat(5) {
-                val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT_PLACE_ID}") {
+                val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
                     headers["Authorization"] = "Bearer ${Tokens.valid}"
                     if (ip != null) {
                         headers["X-Forwarded-For"] = ip
@@ -152,7 +132,7 @@ class GoogleMapsTest {
                 }
                 assertEquals(HttpStatusCode.OK, res.status)
             }
-            val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT_PLACE_ID}") {
+            val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
                 headers["Authorization"] = "Bearer ${Tokens.valid}"
                 if (ip != null) {
                     headers["X-Forwarded-For"] = ip
