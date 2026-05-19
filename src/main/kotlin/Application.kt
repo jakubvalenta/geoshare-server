@@ -24,20 +24,16 @@ fun Application.rootModule() {
         json()
     }
     install(RateLimit) {
-        if (defaultRefillPeriod.isPositive()) {
-            register {
-                rateLimiter(limit = 5, refillPeriod = defaultRefillPeriod)
-                requestKey { applicationCall ->
-                    applicationCall.request.headers["X-Forwarded-For"] ?: ""
-                }
+        register {
+            rateLimiter(limit = 5, refillPeriod = defaultRefillPeriod)
+            requestKey { applicationCall ->
+                applicationCall.request.headers["X-Forwarded-For"] ?: ""
             }
         }
-        if (registerRefillPeriod.isPositive()) {
-            register(RateLimitName("register")) {
-                rateLimiter(limit = 5, refillPeriod = registerRefillPeriod)
-                requestKey { applicationCall ->
-                    applicationCall.request.headers["X-Forwarded-For"] ?: ""
-                }
+        register(RateLimitName("register")) {
+            rateLimiter(limit = 5, refillPeriod = registerRefillPeriod)
+            requestKey { applicationCall ->
+                applicationCall.request.headers["X-Forwarded-For"] ?: ""
             }
         }
     }

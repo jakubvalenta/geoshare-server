@@ -18,7 +18,7 @@
       <option name="taskNames">
         <list>
           <option value="run" />
-          <option value="--args='-c application-demo.conf'" />
+          <option value="--args='-config=application-demo.conf'" />
         </list>
       </option>
       <option name="vmOptions" />
