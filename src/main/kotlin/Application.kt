@@ -15,20 +15,29 @@ import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
 fun Application.rootModule() {
+    val defaultRefillPeriod = environment.config.property("rateLimit.defaultRefillPeriodSec").getString()
+        .toInt().seconds
+    val registerRefillPeriod = environment.config.property("rateLimit.registerRefillPeriodSec").getString()
+        .toInt().seconds
+
     install(ContentNegotiation) {
         json()
     }
     install(RateLimit) {
-        register {
-            rateLimiter(limit = 5, refillPeriod = 60.seconds)
-            requestKey { applicationCall ->
-                applicationCall.request.headers["X-Forwarded-For"] ?: ""
+        if (defaultRefillPeriod.isPositive()) {
+            register {
+                rateLimiter(limit = 5, refillPeriod = defaultRefillPeriod)
+                requestKey { applicationCall ->
+                    applicationCall.request.headers["X-Forwarded-For"] ?: ""
+                }
             }
         }
-        register(RateLimitName("register")) {
-            rateLimiter(limit = 5, refillPeriod = 1.hours)
-            requestKey { applicationCall ->
-                applicationCall.request.headers["X-Forwarded-For"] ?: ""
+        if (registerRefillPeriod.isPositive()) {
+            register(RateLimitName("register")) {
+                rateLimiter(limit = 5, refillPeriod = registerRefillPeriod)
+                requestKey { applicationCall ->
+                    applicationCall.request.headers["X-Forwarded-For"] ?: ""
+                }
             }
         }
     }
