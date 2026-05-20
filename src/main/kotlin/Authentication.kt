@@ -119,7 +119,8 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                     when (val verificationResult = verifier.verify(certificateChain, challengeChecker)) {
                         is VerificationResult.Success -> {
                             when (verificationResult.verifiedBootState) {
-                                VerifiedBootState.VERIFIED -> {
+                                VerifiedBootState.VERIFIED,
+                                VerifiedBootState.SELF_SIGNED ->
                                     // Validate signature
                                     if (verificationResult.publicKey.verifySignature(signature, challenge)) {
                                         // Generate token
@@ -135,11 +136,6 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                                     } else {
                                         ErrorResponse("Invalid signature")
                                     }
-                                }
-
-                                VerifiedBootState.SELF_SIGNED ->
-                                    // TODO Support self-signed certificates
-                                    ErrorResponse("Self-signed certificate")
 
                                 else ->
                                     ErrorResponse("Invalid certificate chain")
