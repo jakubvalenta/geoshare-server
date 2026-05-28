@@ -2,7 +2,6 @@ package net.geoshare_app
 
 import com.android.keyattestation.verifier.VerificationResult
 import com.android.keyattestation.verifier.VerifiedBootState
-import com.android.keyattestation.verifier.challengecheckers.ChallengeMatcher
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.HttpStatusCode
@@ -115,8 +114,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                     // Validate certificate chain
                     val verifier = certificateVerification.getVerifier()
                     val certificateChain = req.certificateChain.map { it.base64Decode().readCertificateFromDEROrPEM() }
-                    val challengeChecker = ChallengeMatcher(challenge)
-                    when (val verificationResult = verifier.verify(certificateChain, challengeChecker)) {
+                    when (val verificationResult = verifier.verify(certificateChain)) {
                         is VerificationResult.Success -> {
                             when (verificationResult.verifiedBootState) {
                                 VerifiedBootState.VERIFIED,
