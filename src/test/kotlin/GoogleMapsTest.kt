@@ -27,7 +27,7 @@ class GoogleMapsTest {
             googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT}")
+        val res = client.get("/v4/geocode/places/${FakeGoogleMapsClient.CORRECT}")
         assertEquals(HttpStatusCode.Unauthorized, res.status)
     }
 
@@ -43,7 +43,7 @@ class GoogleMapsTest {
             googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
+        val res = client.get("/v4/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
             headers["Authorization"] = "Bearer ${Tokens.expired}"
             accept(ContentType.Application.Json)
         }
@@ -62,7 +62,7 @@ class GoogleMapsTest {
             googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.NOT_FOUND}") {
+        val res = client.get("/v4/geocode/places/${FakeGoogleMapsClient.NOT_FOUND}") {
             headers["Authorization"] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
@@ -81,7 +81,7 @@ class GoogleMapsTest {
             googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
+        val res = client.get("/v4/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
             headers["Authorization"] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
@@ -101,7 +101,7 @@ class GoogleMapsTest {
             googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.INVALID_RESPONSE}") {
+        val res = client.get("/v4/geocode/places/${FakeGoogleMapsClient.INVALID_RESPONSE}") {
             headers["Authorization"] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
@@ -123,7 +123,7 @@ class GoogleMapsTest {
 
         for (ip in listOf(null, "10.10.10.1", "10.10.10.2")) {
             repeat(5) {
-                val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
+                val res = client.get("/v4/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
                     headers["Authorization"] = "Bearer ${Tokens.valid}"
                     if (ip != null) {
                         headers["X-Forwarded-For"] = ip
@@ -132,7 +132,7 @@ class GoogleMapsTest {
                 }
                 assertEquals(HttpStatusCode.OK, res.status)
             }
-            val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
+            val res = client.get("/v4/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
                 headers["Authorization"] = "Bearer ${Tokens.valid}"
                 if (ip != null) {
                     headers["X-Forwarded-For"] = ip
