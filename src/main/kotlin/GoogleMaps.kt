@@ -18,7 +18,7 @@ private class AddressResource(val query: String)
 private class PlaceResource(val id: String)
 
 fun Application.googleMapsModule(googleMapsClient: GoogleMapsClient) {
-    val googleMapsApiKey = environment.config.propertyOrNull("googleMaps.apiKey")?.getString()
+    val apiKey = environment.config.propertyOrNull("googleMaps.apiKey")?.getString()
         ?: File(environment.config.property("googleMaps.apiKeyFile").getString()).readText()
 
     install(Resources)
@@ -27,12 +27,12 @@ fun Application.googleMapsModule(googleMapsClient: GoogleMapsClient) {
             rateLimit {
                 // TODO Test GET /v4/geocode/address/{query}
                 get<AddressResource> { address ->
-                    call.respond(googleMapsClient.geocodeAddress(googleMapsApiKey, address.query))
+                    call.respond(googleMapsClient.geocodeAddress(apiKey, address.query))
                 }
             }
             rateLimit {
                 get<PlaceResource> { place ->
-                    call.respond(googleMapsClient.geocodePlace(googleMapsApiKey, place.id))
+                    call.respond(googleMapsClient.geocodePlace(apiKey, place.id))
                 }
             }
         }

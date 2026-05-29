@@ -6,9 +6,9 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
+import io.ktor.client.request.headers
 import io.ktor.client.request.url
 import io.ktor.http.appendPathSegments
-import io.ktor.http.headers
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -30,7 +30,7 @@ interface GoogleMapsClient {
     suspend fun geocodePlace(apiKey: String, id: String): GoogleMapsResult
 }
 
-class GoogleMapsClientImpl : GoogleMapsClient {
+class DefaultGoogleMapsClient : GoogleMapsClient {
     // TODO Test geocodeAddress
     override suspend fun geocodeAddress(apiKey: String, query: String) =
         callGoogleMapsApi<GoogleMapsResults>(
@@ -49,12 +49,12 @@ class GoogleMapsClientImpl : GoogleMapsClient {
 
 private suspend inline fun <reified T> callGoogleMapsApi(vararg path: String, apiKey: String, fieldMask: String): T =
     HttpClient(CIO) {
+        expectSuccess = true
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
             })
         }
-        expectSuccess = true
     }.use { client ->
         try {
             client.get {
@@ -75,4 +75,4 @@ private suspend inline fun <reified T> callGoogleMapsApi(vararg path: String, ap
     }
 
 @Suppress("unused")
-fun provideGoogleMapsClient(): GoogleMapsClient = GoogleMapsClientImpl()
+fun provideGoogleMapsClient(): GoogleMapsClient = DefaultGoogleMapsClient()
