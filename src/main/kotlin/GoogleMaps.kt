@@ -11,10 +11,10 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import java.io.File
 
-@Resource("/v4/geocode/address/{query}")
+@Resource("/v1/google-maps/geocode/address/{query}")
 private class AddressResource(val query: String)
 
-@Resource("/v4/geocode/places/{id}")
+@Resource("/v1/google-maps/geocode/places/{id}")
 private class PlaceResource(val id: String)
 
 fun Application.googleMapsModule(googleMapsClient: GoogleMapsClient) {
@@ -25,7 +25,7 @@ fun Application.googleMapsModule(googleMapsClient: GoogleMapsClient) {
     routing {
         authenticate {
             rateLimit {
-                // TODO Test GET /v4/geocode/address/{query}
+                // TODO Test GET /v4/google-maps/geocode/address/{query}
                 get<AddressResource> { address ->
                     call.respond(googleMapsClient.geocodeAddress(apiKey, address.query))
                 }
