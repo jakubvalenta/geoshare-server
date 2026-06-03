@@ -51,25 +51,6 @@ class GoogleMapsTest {
     }
 
     @Test
-    fun `geocode address route - when google api returns 404, it returns 404`() = testApplication {
-        environment {
-            config = ApplicationConfig("application-test.conf")
-        }
-        application {
-            val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
-        }
-
-        val res = client.get("/v1/google-maps/geocode/address/${FakeGoogleMapsClient.NOT_FOUND}") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.NotFound, res.status)
-    }
-
-    @Test
     fun `geocode address route - when google api returns 200, it returns 200`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
@@ -92,7 +73,7 @@ class GoogleMapsTest {
                 {
                     "results": [
                         {
-                            "location": {"latitude": 50.12345, "longitude": -11.12345}
+                            "location": {"latitude": 50.123456, "longitude": -11.123456}
                         },
                         {
                             "location": {"latitude": 9.0, "longitude": -120.0}
@@ -105,7 +86,7 @@ class GoogleMapsTest {
     }
 
     @Test
-    fun `geocode address route - when google api returns invalid response, it returns 404`() = testApplication {
+    fun `geocode address route - when google api returns 401, it returns 500`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -116,7 +97,26 @@ class GoogleMapsTest {
             googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        val res = client.get("/v1/google-maps/geocode/address/${FakeGoogleMapsClient.INVALID_RESPONSE}") {
+        val res = client.get("/v1/google-maps/geocode/address/${FakeGoogleMapsClient.UNAUTHORIZED}") {
+            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.InternalServerError, res.status)
+    }
+
+    @Test
+    fun `geocode address route - when google api returns 404, it returns 404`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.conf")
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
+        }
+
+        val res = client.get("/v1/google-maps/geocode/address/${FakeGoogleMapsClient.NOT_FOUND}") {
             headers["Authorization"] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
@@ -124,7 +124,26 @@ class GoogleMapsTest {
     }
 
     @Test
-    fun `geocode address route - when called fast, it returns 429`() = testApplication {
+    fun `geocode address route - when google api throws exception, it returns 500`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.conf")
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
+        }
+
+        val res = client.get("/v1/google-maps/geocode/address/${FakeGoogleMapsClient.EXCEPTION}") {
+            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.InternalServerError, res.status)
+    }
+
+    @Test
+    fun `geocode address route - when called too fast, it returns 429`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -193,25 +212,6 @@ class GoogleMapsTest {
     }
 
     @Test
-    fun `geocode place route - when google api returns 404, it returns 404`() = testApplication {
-        environment {
-            config = ApplicationConfig("application-test.conf")
-        }
-        application {
-            val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
-        }
-
-        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.NOT_FOUND}") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.NotFound, res.status)
-    }
-
-    @Test
     fun `geocode place route - when google api returns 200, it returns 200`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
@@ -232,7 +232,7 @@ class GoogleMapsTest {
             // language=Json
             """
                 {
-                    "location": {"latitude": 50.12345, "longitude": -11.12345}
+                    "location": {"latitude": 50.123456, "longitude": -11.123456}
                 }
             """.trimIndent().replace("\n", "").replace(" ", ""),
             res.bodyAsText(),
@@ -240,7 +240,7 @@ class GoogleMapsTest {
     }
 
     @Test
-    fun `geocode place route - when google api returns invalid response, returns 404`() = testApplication {
+    fun `geocode place route - when google api returns 401, it returns 500`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -251,7 +251,26 @@ class GoogleMapsTest {
             googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.INVALID_RESPONSE}") {
+        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.UNAUTHORIZED}") {
+            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.InternalServerError, res.status)
+    }
+
+    @Test
+    fun `geocode place route - when google api returns 404, it returns 404`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.conf")
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
+        }
+
+        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.NOT_FOUND}") {
             headers["Authorization"] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
@@ -259,7 +278,26 @@ class GoogleMapsTest {
     }
 
     @Test
-    fun `geocode place route - when called fast, it returns 429`() = testApplication {
+    fun `geocode place route - when google api throws exception, it returns 500`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.conf")
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
+        }
+
+        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.EXCEPTION}") {
+            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.InternalServerError, res.status)
+    }
+
+    @Test
+    fun `geocode place route - when called too fast, it returns 429`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }

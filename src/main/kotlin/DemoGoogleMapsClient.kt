@@ -7,7 +7,7 @@ class DemoGoogleMapsClient : GoogleMapsClient {
     override suspend fun geocodeAddress(apiKey: String, query: String) =
         GoogleMapsResults(listOf(GoogleMapsResult(genRandomLocation())))
 
-    override suspend fun geocodePlace(apiKey: String, id: String) =
+    override suspend fun geocodePlace(apiKey: String, placeId: String) =
         GoogleMapsResult(genRandomLocation())
 }
 

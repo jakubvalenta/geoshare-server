@@ -16,11 +16,11 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-class GoogleMapsNotFoundException(message: String, cause: Throwable) : Exception(message, cause)
+class GoogleMapsNotFoundException(cause: Throwable) : Exception(cause)
 
-class GoogleMapsUnauthorizedException(message: String, cause: Throwable) : Exception(message, cause)
+class GoogleMapsUnauthorizedException(cause: Throwable) : Exception(cause)
 
-class GoogleMapsUnknownException(message: String, cause: Throwable) : Exception(message, cause)
+class GoogleMapsUnknownException(cause: Throwable) : Exception(cause)
 
 @Serializable
 data class GoogleMapsLocation(val latitude: Double, val longitude: Double)
@@ -33,7 +33,7 @@ data class GoogleMapsResults(val results: List<GoogleMapsResult>)
 
 interface GoogleMapsClient {
     suspend fun geocodeAddress(apiKey: String, query: String): GoogleMapsResults
-    suspend fun geocodePlace(apiKey: String, id: String): GoogleMapsResult
+    suspend fun geocodePlace(apiKey: String, placeId: String): GoogleMapsResult
 }
 
 class DefaultGoogleMapsClient(private val engine: HttpClientEngine = CIO.create()) : GoogleMapsClient {
@@ -45,9 +45,9 @@ class DefaultGoogleMapsClient(private val engine: HttpClientEngine = CIO.create(
             fieldMask = "results.location",
         )
 
-    override suspend fun geocodePlace(apiKey: String, id: String) =
+    override suspend fun geocodePlace(apiKey: String, placeId: String) =
         callGoogleMapsApi<GoogleMapsResult>(
-            "v4", "geocode", "places", id,
+            "v4", "geocode", "places", placeId,
             engine = engine,
             apiKey = apiKey,
             fieldMask = "location",
@@ -76,16 +76,16 @@ private suspend inline fun <reified T> callGoogleMapsApi(vararg path: String, en
             }.body<T>()
         } catch (tr: ClientRequestException) {
             when (tr.response.status) {
-                HttpStatusCode.BadRequest, HttpStatusCode.NotFound -> throw GoogleMapsNotFoundException("Not found", tr)
+                HttpStatusCode.BadRequest, HttpStatusCode.NotFound -> throw GoogleMapsNotFoundException(tr)
 
-                HttpStatusCode.Unauthorized -> throw GoogleMapsUnauthorizedException("Not found", tr)
+                HttpStatusCode.Unauthorized -> throw GoogleMapsUnauthorizedException(tr)
 
-                else -> throw GoogleMapsUnknownException("Client request exception", tr)
+                else -> throw GoogleMapsUnknownException(tr)
             }
         } catch (tr: JsonConvertException) {
-            throw GoogleMapsNotFoundException("Not found", tr)
+            throw GoogleMapsNotFoundException(tr)
         } catch (tr: Exception) {
-            throw GoogleMapsUnknownException("Unknown exception", tr)
+            throw GoogleMapsUnknownException(tr)
         }
     }
 
