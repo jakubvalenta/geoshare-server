@@ -25,7 +25,6 @@ fun Application.googleMapsModule(googleMapsClient: GoogleMapsClient) {
     routing {
         authenticate {
             rateLimit {
-                // TODO Test GET /v4/google-maps/geocode/address/{query}
                 get<AddressResource> { address ->
                     call.respond(googleMapsClient.geocodeAddress(apiKey, address.query))
                 }
