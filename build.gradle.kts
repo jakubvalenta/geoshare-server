@@ -18,6 +18,7 @@ dependencies {
     implementation(ktorLibs.client.cio)
     implementation(ktorLibs.client.core)
     implementation(ktorLibs.client.contentNegotiation)
+    implementation(ktorLibs.client.mock)
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation(ktorLibs.server.auth)
     implementation(ktorLibs.server.auth.jwt)

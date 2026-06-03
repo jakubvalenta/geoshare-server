@@ -38,13 +38,20 @@ fun Application.rootModule() {
         }
     }
     install(StatusPages) {
-        exception<GoogleMapsException> { call, cause ->
-            call.application.environment.log.error("Google Maps request failed", cause)
-            call.respondText(text = "500: Google Maps request failed.", status = HttpStatusCode.InternalServerError)
+        exception<GoogleMapsNotFoundException> { call, _ ->
+            call.respondText(text = "Not found", status = HttpStatusCode.NotFound)
+        }
+        exception<GoogleMapsUnauthorizedException> { call, cause ->
+            call.application.environment.log.error("Google Maps unauthorized exception", cause)
+            call.respondText(text = "Google Maps request failed", status = HttpStatusCode.InternalServerError)
+        }
+        exception<GoogleMapsUnknownException> { call, cause ->
+            call.application.environment.log.error("Google Maps unknown exception", cause)
+            call.respondText(text = "Google Maps request failed", status = HttpStatusCode.InternalServerError)
         }
         status(HttpStatusCode.TooManyRequests) { call, status ->
             val retryAfter = call.response.headers["Retry-After"]
-            call.respondText(text = "429: Too many requests. Wait for $retryAfter seconds.", status = status)
+            call.respondText(text = "Too many requests. Wait for $retryAfter seconds", status = status)
         }
     }
 }
