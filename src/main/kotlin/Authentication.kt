@@ -9,6 +9,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.apikey.apiKey
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.plugins.ratelimit.RateLimitName
@@ -58,6 +59,8 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
         ?: File(environment.config.property("auth.jwtSecretFile").getString()).readBytes()
     val revocationListRefreshInterval = environment.config.property("auth.revocationListRefreshIntervalSec")
         .getString().toInt().seconds
+    val statusApiKeyHash = environment.config.propertyOrNull("googleMaps.statusApiKeyHash")?.getString()
+        ?: File(environment.config.property("googleMaps.statusApiKeyHashFile").getString()).readText()
 
     val secureRandom = SecureRandom()
 
@@ -78,7 +81,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
     }
 
     install(Authentication) {
-        jwt {
+        jwt("api") {
             verifier(JWT.require(Algorithm.HMAC256(jwtSecret)).build())
             validate { credential ->
                 if (!credential.payload.subject.isNullOrEmpty()) {
@@ -86,6 +89,11 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 } else {
                     null
                 }
+            }
+        }
+        apiKey("status") {
+            validate { keyFromHeader ->
+                if (keyFromHeader.toByteArray().sha256Hex() == statusApiKeyHash) true else null
             }
         }
     }

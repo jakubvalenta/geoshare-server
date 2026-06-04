@@ -16,14 +16,29 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-class GoogleMapsNotFoundException(cause: Throwable) : Exception(cause)
+sealed class GoogleMapsException(cause: Throwable) : Exception(cause)
 
-class GoogleMapsUnauthorizedException(cause: Throwable) : Exception(cause)
+class GoogleMapsNotFoundException(cause: Throwable) : GoogleMapsException(cause)
 
-class GoogleMapsUnknownException(cause: Throwable) : Exception(cause)
+class GoogleMapsUnauthorizedException(cause: Throwable) : GoogleMapsException(cause)
+
+class GoogleMapsUnknownException(cause: Throwable) : GoogleMapsException(cause)
 
 @Serializable
-data class GoogleMapsLocation(val latitude: Double, val longitude: Double)
+data class GoogleMapsLocation(val latitude: Double, val longitude: Double) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as GoogleMapsLocation
+        return latitude.equalsDelta(other.latitude) && longitude.equalsDelta(other.longitude)
+    }
+
+    override fun hashCode(): Int {
+        var result = latitude.hashCode()
+        result = 31 * result + longitude.hashCode()
+        return result
+    }
+}
 
 @Serializable
 data class GoogleMapsResult(val location: GoogleMapsLocation)

@@ -8,9 +8,10 @@ import net.geoshare_app.GoogleMapsResult
 import net.geoshare_app.GoogleMapsResults
 import net.geoshare_app.GoogleMapsUnauthorizedException
 import net.geoshare_app.GoogleMapsUnknownException
+import net.geoshare_app.STATUS_QUERY
 import java.net.SocketTimeoutException
 
-class FakeGoogleMapsClient : GoogleMapsClient {
+class FakeGoogleMapsClient(private val statusLocation: GoogleMapsLocation? = null) : GoogleMapsClient {
     override suspend fun geocodeAddress(apiKey: String, query: String) =
         when (query) {
             CORRECT -> GoogleMapsResults(
@@ -21,17 +22,28 @@ class FakeGoogleMapsClient : GoogleMapsClient {
             )
 
             EXCEPTION -> throw GoogleMapsUnknownException(SocketTimeoutException())
+
             NOT_FOUND -> throw GoogleMapsNotFoundException(NotFoundException())
+
             UNAUTHORIZED -> throw GoogleMapsUnauthorizedException(Exception())
+
+            STATUS_QUERY -> statusLocation
+                ?.let { GoogleMapsResults(listOf(GoogleMapsResult(it))) }
+                ?: GoogleMapsResults(emptyList())
+
             else -> throw NotImplementedError()
         }
 
     override suspend fun geocodePlace(apiKey: String, placeId: String) =
         when (placeId) {
             CORRECT -> GoogleMapsResult(GoogleMapsLocation(50.123456, -11.123456))
+
             EXCEPTION -> throw GoogleMapsUnknownException(SocketTimeoutException())
+
             NOT_FOUND -> throw GoogleMapsNotFoundException(NotFoundException())
+
             UNAUTHORIZED -> throw GoogleMapsUnauthorizedException(Exception())
+
             else -> throw NotImplementedError()
         }
 

@@ -6,6 +6,8 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.config.ApplicationConfig
+import io.ktor.server.config.MapApplicationConfig
+import io.ktor.server.config.mergeWith
 import io.ktor.server.testing.testApplication
 import net.geoshare_app.testing.FakeCache
 import net.geoshare_app.testing.FakeGoogleMapsClient
@@ -320,5 +322,111 @@ class GoogleMapsTest {
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.TooManyRequests, res.status)
+    }
+
+    @Test
+    fun `status route - when called with correct token and google api returns expected location with tiny delta, it returns 200`() = testApplication {
+        val statusApiKey = "test-status-api-key"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "googleMaps.statusApiKeyHash" to statusApiKey.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+            googleMapsModule(
+                googleMapsClient = FakeGoogleMapsClient(
+                    statusLocation = GoogleMapsLocation(47.5951518, -122.33163940000001),
+                ),
+            )
+        }
+
+        val res = client.get("/v1/google-maps/status") {
+            headers["X-Api-Key"] = statusApiKey
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.OK, res.status)
+    }
+
+    @Test
+    fun `status route - when called with correct token and google api returns unexpected location, it returns 500`() = testApplication {
+        val statusApiKey = "test-status-api-key"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "googleMaps.statusApiKeyHash" to statusApiKey.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+            googleMapsModule(
+                googleMapsClient = FakeGoogleMapsClient(
+                    statusLocation =GoogleMapsLocation(3.14, -120.0),
+                ),
+            )
+        }
+
+        val res = client.get("/v1/google-maps/status") {
+            headers["X-Api-Key"] = statusApiKey
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.InternalServerError, res.status)
+        assertEquals("Unexpected location", res.bodyAsText())
+    }
+
+    @Test
+    fun `status route - when called with correct token and google api returns no results, it returns 500`() = testApplication {
+        val statusApiKey = "test-status-api-key"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "googleMaps.statusApiKeyHash" to statusApiKey.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
+        }
+
+        val res = client.get("/v1/google-maps/status") {
+            headers["X-Api-Key"] = statusApiKey
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.InternalServerError, res.status)
+        assertEquals("No results", res.bodyAsText())
+    }
+
+    @Test
+    fun `status route - when called with incorrect token, it returns 401`() = testApplication {
+        val statusApiKey = "test-status-api-key"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "googleMaps.statusApiKeyHash" to statusApiKey.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+            googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
+        }
+
+        val res = client.get("/v1/google-maps/status") {
+            headers["X-Api-Key"] = "spam"
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.Unauthorized, res.status)
     }
 }
