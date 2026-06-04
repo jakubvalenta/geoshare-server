@@ -740,13 +740,26 @@ class AuthenticationTest {
             )
         }
         application {
+            @Suppress("RedundantSuppression")
             val cache = object : Cache {
+                @Suppress("EmptyMethod", "unused")
                 override suspend fun get(key: String) = ""
+
+                @Suppress("EmptyMethod", "unused")
                 override suspend fun set(key: String, value: String) {}
+
+                @Suppress("EmptyMethod", "unused")
                 override suspend fun set(key: String, value: String, expire: Duration) {}
+
+                @Suppress("EmptyMethod", "unused")
                 override suspend fun delete(key: String) {}
+
+                @Suppress("EmptyMethod", "unused")
                 override suspend fun expire(key: String, expire: Duration) {}
+
                 override suspend fun ping() = false
+
+                @Suppress("EmptyMethod")
                 override fun close() {}
             }
             rootModule()
