@@ -30,9 +30,9 @@ head -c 64 < /dev/urandom > ./secrets/jwt-secret
 Generate a status check API key and store it in a file:
 
 ```shell
-your_status_api_key=$(uuidgen)
-echo "Your status check API key is: $your_status_api_key"
-echo -n "$your_status_api_key" | sha256sum | awk '{print $1}' | tr -d '\n' > ./secrets/status-api-key-hash
+your_status_api_token=$(uuidgen)
+echo "Your status check API token is: $your_status_api_token"
+echo -n "$your_status_api_token" | sha256sum | awk '{print $1}' | tr -d '\n' > ./secrets/status-api-token-hash
 ```
 
 Start Redis:
@@ -47,7 +47,7 @@ Run the application:
 CACHE_URI="redis-socket:///run/user/1000/redis.sock" \
 GOOGLE_MAPS_API_KEY_FILE="secrets/google-maps-api-key" \
 JWT_SECRET_FILE="secrets/jwt-secret" \
-STATUS_API_KEY_HASH_FILE="secrets/status-api-key-hash" \
+STATUS_API_TOKEN_HASH_FILE="secrets/status-api-token-hash" \
 ./gradlew run
 ```
 
@@ -59,7 +59,7 @@ CACHE_URI="redis-socket:///run/user/1000/redis.sock" \
 DRY_RUN="true" \
 GOOGLE_MAPS_API_KEY_FILE="secrets/google-maps-api-key" \
 JWT_SECRET_FILE="secrets/jwt-secret" \
-STATUS_API_KEY_HASH_FILE="secrets/status-api-key-hash" \
+STATUS_API_TOKEN_HASH_FILE="secrets/status-api-token-hash" \
 ./gradlew run
 ```
 
@@ -72,14 +72,14 @@ JWT_SECRET_FILE="secrets/jwt-secret" \
 RATE_LIMIT_DEFAULT=200 \
 RATE_LIMIT_LOGIN=200 \
 RATE_LIMIT_REGISTER=200 \
-STATUS_API_KEY_HASH_FILE="secrets/status-api-key-hash" \
+STATUS_API_TOKEN_HASH_FILE="secrets/status-api-token-hash" \
 ./gradlew run
 ```
 
 Finally, you can check the status of the running application:
 
 ```shell
-curl -i -H "X-Api-Key: $your_status_api_key" "https://127.0.0.1:8080/v1/google-maps/status"
+curl -i -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/google-maps/status"
 ```
 
 ### Deployment
@@ -96,7 +96,7 @@ Run:
 CACHE_URI="your redis uri" \
 GOOGLE_MAPS_API_KEY_FILE="path to a file with your google maps api key" \
 JWT_SECRET_FILE="path to a file with your jwt secret" \
-STATUS_API_KEY_HASH_FILE="path to a file with your status check api key hash" \
+STATUS_API_TOKEN_HASH_FILE="path to a file with your status check api key hash" \
 java -Xms128m -Xmx256m -jar "build/libs/GeoShare Server-all.jar" -port=8080
 ```
 

@@ -9,7 +9,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.apikey.apiKey
+import io.ktor.server.auth.bearer
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.plugins.ratelimit.RateLimitName
@@ -59,8 +59,8 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
         ?: File(environment.config.property("auth.jwtSecretFile").getString()).readBytes()
     val revocationListRefreshInterval = environment.config.property("auth.revocationListRefreshIntervalSec")
         .getString().toInt().seconds
-    val statusApiKeyHash = environment.config.propertyOrNull("googleMaps.statusApiKeyHash")?.getString()
-        ?: File(environment.config.property("googleMaps.statusApiKeyHashFile").getString()).readText()
+    val statusApiTokenHash = environment.config.propertyOrNull("googleMaps.statusApiTokenHash")?.getString()
+        ?: File(environment.config.property("googleMaps.statusApiTokenHashFile").getString()).readText()
 
     val secureRandom = SecureRandom()
 
@@ -91,9 +91,9 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 }
             }
         }
-        apiKey("status") {
-            validate { keyFromHeader ->
-                if (keyFromHeader.toByteArray().sha256Hex() == statusApiKeyHash) true else null
+        bearer("status") {
+            authenticate { tokenCredential ->
+                if (tokenCredential.token.toByteArray().sha256Hex() == statusApiTokenHash) true else null
             }
         }
     }

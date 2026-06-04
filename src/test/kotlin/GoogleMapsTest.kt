@@ -147,7 +147,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/address/$query") {
-            headers["Authorization"] = "Bearer ${Tokens.expired}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.expired}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.Unauthorized, res.status)
@@ -170,7 +170,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/address/$query") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -190,7 +190,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/address/$query") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.OK, res.status)
@@ -221,7 +221,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/address/empty-results") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.OK, res.status)
@@ -245,7 +245,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/address/empty-object") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.NotFound, res.status)
@@ -264,7 +264,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/address/invalid") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.NotFound, res.status)
@@ -283,7 +283,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/address/bad-request") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.NotFound, res.status)
@@ -302,7 +302,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/address/not-found") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.NotFound, res.status)
@@ -321,7 +321,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/address/too-many-requests") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -341,7 +341,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/address/unauthorized") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -361,7 +361,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/address/exception") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -383,7 +383,7 @@ class GoogleMapsTest {
         // The first few requests pass
         repeat(5) {
             val res = client.get("/v1/google-maps/geocode/address/$query") {
-                headers["Authorization"] = "Bearer ${Tokens.valid}"
+                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
                 headers["X-Real-Ip"] = "203.0.113.1"
                 accept(ContentType.Application.Json)
             }
@@ -391,7 +391,7 @@ class GoogleMapsTest {
         }
         // The next request is rate-limited
         val res = client.get("/v1/google-maps/geocode/address/$query") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             headers["X-Real-Ip"] = "203.0.113.1"
             accept(ContentType.Application.Json)
         }
@@ -427,7 +427,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/places/$placeId") {
-            headers["Authorization"] = "Bearer ${Tokens.expired}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.expired}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.Unauthorized, res.status)
@@ -450,7 +450,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/places/$placeId") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -470,7 +470,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/places/$placeId") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.OK, res.status)
@@ -498,7 +498,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/places/empty-object") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.NotFound, res.status)
@@ -517,7 +517,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/places/invalid") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.NotFound, res.status)
@@ -536,7 +536,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/places/bad-request") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.NotFound, res.status)
@@ -555,7 +555,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/places/not-found") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.NotFound, res.status)
@@ -574,7 +574,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/places/too-many-requests") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -594,7 +594,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/places/unauthorized") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -614,7 +614,7 @@ class GoogleMapsTest {
         }
 
         val res = client.get("/v1/google-maps/geocode/places/exception") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -636,7 +636,7 @@ class GoogleMapsTest {
         // The first few requests pass
         repeat(5) {
             val res = client.get("/v1/google-maps/geocode/places/$placeId") {
-                headers["Authorization"] = "Bearer ${Tokens.valid}"
+                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
                 headers["X-Real-Ip"] = "203.0.113.1"
                 accept(ContentType.Application.Json)
             }
@@ -644,7 +644,7 @@ class GoogleMapsTest {
         }
         // The next request is rate-limited
         val res = client.get("/v1/google-maps/geocode/places/$placeId") {
-            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             headers["X-Real-Ip"] = "203.0.113.1"
             accept(ContentType.Application.Json)
         }
@@ -654,11 +654,11 @@ class GoogleMapsTest {
     @Test
     fun `status route - when called with correct token and upstream returns expected location with tiny delta, it returns 200`() =
         testApplication {
-            val statusApiKey = "test-status-api-key"
+            val statusApiToken = "test-status-"
             environment {
                 config = ApplicationConfig("application-test.conf").mergeWith(
                     MapApplicationConfig(
-                        "googleMaps.statusApiKeyHash" to statusApiKey.toByteArray().sha256Hex(),
+                        "googleMaps.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
                     )
                 )
             }
@@ -690,7 +690,7 @@ class GoogleMapsTest {
             }
 
             val res = client.get("/v1/google-maps/status") {
-                headers["X-Api-Key"] = statusApiKey
+                headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
                 accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.OK, res.status)
@@ -699,11 +699,11 @@ class GoogleMapsTest {
     @Test
     fun `status route - when called with correct token and upstream returns unexpected location, it returns 500`() =
         testApplication {
-            val statusApiKey = "test-status-api-key"
+            val statusApiToken = "test-status-api-token"
             environment {
                 config = ApplicationConfig("application-test.conf").mergeWith(
                     MapApplicationConfig(
-                        "googleMaps.statusApiKeyHash" to statusApiKey.toByteArray().sha256Hex(),
+                        "googleMaps.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
                     )
                 )
             }
@@ -735,7 +735,7 @@ class GoogleMapsTest {
             }
 
             val res = client.get("/v1/google-maps/status") {
-                headers["X-Api-Key"] = statusApiKey
+                headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
                 accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -745,11 +745,11 @@ class GoogleMapsTest {
     @Test
     fun `status route - when called with correct token and upstream returns no results, it returns 500`() =
         testApplication {
-            val statusApiKey = "test-status-api-key"
+            val statusApiToken = "test-status-api-token"
             environment {
                 config = ApplicationConfig("application-test.conf").mergeWith(
                     MapApplicationConfig(
-                        "googleMaps.statusApiKeyHash" to statusApiKey.toByteArray().sha256Hex(),
+                        "googleMaps.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
                     )
                 )
             }
@@ -779,7 +779,7 @@ class GoogleMapsTest {
             }
 
             val res = client.get("/v1/google-maps/status") {
-                headers["X-Api-Key"] = statusApiKey
+                headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
                 accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -789,11 +789,11 @@ class GoogleMapsTest {
     @Test
     fun `status route - when called with correct token and upstream throws unauthorized, it returns 500`() =
         testApplication {
-            val statusApiKey = "test-status-api-key"
+            val statusApiToken = "test-status-api-token"
             environment {
                 config = ApplicationConfig("application-test.conf").mergeWith(
                     MapApplicationConfig(
-                        "googleMaps.statusApiKeyHash" to statusApiKey.toByteArray().sha256Hex(),
+                        "googleMaps.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
                     )
                 )
             }
@@ -814,7 +814,7 @@ class GoogleMapsTest {
             }
 
             val res = client.get("/v1/google-maps/status") {
-                headers["X-Api-Key"] = statusApiKey
+                headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
                 accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -824,11 +824,11 @@ class GoogleMapsTest {
     @Test
     fun `status route - when called with correct token and upstream throws not found, it returns 404`() =
         testApplication {
-            val statusApiKey = "test-status-api-key"
+            val statusApiToken = "test-status-api-token"
             environment {
                 config = ApplicationConfig("application-test.conf").mergeWith(
                     MapApplicationConfig(
-                        "googleMaps.statusApiKeyHash" to statusApiKey.toByteArray().sha256Hex(),
+                        "googleMaps.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
                     )
                 )
             }
@@ -849,7 +849,7 @@ class GoogleMapsTest {
             }
 
             val res = client.get("/v1/google-maps/status") {
-                headers["X-Api-Key"] = statusApiKey
+                headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
                 accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.NotFound, res.status)
@@ -858,11 +858,11 @@ class GoogleMapsTest {
     @Test
     fun `status route - when called with correct token and upstream throws exception, it returns 500`() =
         testApplication {
-            val statusApiKey = "test-status-api-key"
+            val statusApiToken = "test-status-api-token"
             environment {
                 config = ApplicationConfig("application-test.conf").mergeWith(
                     MapApplicationConfig(
-                        "googleMaps.statusApiKeyHash" to statusApiKey.toByteArray().sha256Hex(),
+                        "googleMaps.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
                     )
                 )
             }
@@ -876,7 +876,7 @@ class GoogleMapsTest {
             }
 
             val res = client.get("/v1/google-maps/status") {
-                headers["X-Api-Key"] = statusApiKey
+                headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
                 accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -885,11 +885,11 @@ class GoogleMapsTest {
 
     @Test
     fun `status route - when called with incorrect token, it returns 401`() = testApplication {
-        val statusApiKey = "test-status-api-key"
+        val statusApiToken = "test-status-api-token"
         environment {
             config = ApplicationConfig("application-test.conf").mergeWith(
                 MapApplicationConfig(
-                    "googleMaps.statusApiKeyHash" to statusApiKey.toByteArray().sha256Hex(),
+                    "googleMaps.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
                 )
             )
         }

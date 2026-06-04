@@ -21,7 +21,6 @@ dependencies {
     implementation(ktorLibs.client.mock)
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation(ktorLibs.server.auth)
-    implementation(ktorLibs.server.auth.apiKey)
     implementation(ktorLibs.server.auth.jwt)
     implementation(ktorLibs.server.contentNegotiation)
     implementation(ktorLibs.server.core)
