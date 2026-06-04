@@ -26,13 +26,13 @@ fun Application.rootModule() {
         register {
             rateLimiter(limit = 5, refillPeriod = defaultRefillPeriod)
             requestKey { applicationCall ->
-                applicationCall.request.headers["X-Forwarded-For"] ?: ""
+                applicationCall.request.headers["X-Real-Ip"]?.let { ipToRateLimitBlock(it) } ?: ""
             }
         }
         register(RateLimitName("register")) {
             rateLimiter(limit = 5, refillPeriod = registerRefillPeriod)
             requestKey { applicationCall ->
-                applicationCall.request.headers["X-Forwarded-For"] ?: ""
+                applicationCall.request.headers["X-Real-Ip"]?.let { ipToRateLimitBlock(it) } ?: ""
             }
         }
     }

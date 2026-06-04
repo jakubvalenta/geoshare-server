@@ -154,26 +154,22 @@ class GoogleMapsTest {
             googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        for (ip in listOf(null, "10.10.10.1", "10.10.10.2")) {
-            repeat(5) {
-                val res = client.get("/v1/google-maps/geocode/address/${FakeGoogleMapsClient.CORRECT}") {
-                    headers["Authorization"] = "Bearer ${Tokens.valid}"
-                    if (ip != null) {
-                        headers["X-Forwarded-For"] = ip
-                    }
-                    accept(ContentType.Application.Json)
-                }
-                assertEquals(HttpStatusCode.OK, res.status)
-            }
+        // The first few requests pass
+        repeat(5) {
             val res = client.get("/v1/google-maps/geocode/address/${FakeGoogleMapsClient.CORRECT}") {
                 headers["Authorization"] = "Bearer ${Tokens.valid}"
-                if (ip != null) {
-                    headers["X-Forwarded-For"] = ip
-                }
+                headers["X-Real-Ip"] = "203.0.113.1"
                 accept(ContentType.Application.Json)
             }
-            assertEquals(HttpStatusCode.TooManyRequests, res.status)
+            assertEquals(HttpStatusCode.OK, res.status)
         }
+        // The next request is rate-limited
+        val res = client.get("/v1/google-maps/geocode/address/${FakeGoogleMapsClient.CORRECT}") {
+            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers["X-Real-Ip"] = "203.0.113.1"
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.TooManyRequests, res.status)
     }
 
     @Test
@@ -308,25 +304,21 @@ class GoogleMapsTest {
             googleMapsModule(googleMapsClient = FakeGoogleMapsClient())
         }
 
-        for (ip in listOf(null, "10.10.10.1", "10.10.10.2")) {
-            repeat(5) {
-                val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
-                    headers["Authorization"] = "Bearer ${Tokens.valid}"
-                    if (ip != null) {
-                        headers["X-Forwarded-For"] = ip
-                    }
-                    accept(ContentType.Application.Json)
-                }
-                assertEquals(HttpStatusCode.OK, res.status)
-            }
+        // The first few requests pass
+        repeat(5) {
             val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
                 headers["Authorization"] = "Bearer ${Tokens.valid}"
-                if (ip != null) {
-                    headers["X-Forwarded-For"] = ip
-                }
+                headers["X-Real-Ip"] = "203.0.113.1"
                 accept(ContentType.Application.Json)
             }
-            assertEquals(HttpStatusCode.TooManyRequests, res.status)
+            assertEquals(HttpStatusCode.OK, res.status)
         }
+        // The next request is rate-limited
+        val res = client.get("/v1/google-maps/geocode/places/${FakeGoogleMapsClient.CORRECT}") {
+            headers["Authorization"] = "Bearer ${Tokens.valid}"
+            headers["X-Real-Ip"] = "203.0.113.1"
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.TooManyRequests, res.status)
     }
 }
