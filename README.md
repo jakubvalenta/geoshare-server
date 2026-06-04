@@ -1,6 +1,7 @@
 # GeoShare Server
 
-A web server that provides API used by [GeoShare](https://github.com/jakubvalenta/geoshare).
+A web server for the [GeoShare](https://github.com/jakubvalenta/geoshare)
+Android app.
 
 ## Features
 
@@ -16,6 +17,9 @@ A web server that provides API used by [GeoShare](https://github.com/jakubvalent
 
 ### Local
 
+Go to Google Cloud console, create your Google Maps API key, and store it in the
+file `./secrets/google-maps-api-key`.
+
 Generate a JWT secret and store it in a file:
 
 ```shell
@@ -30,9 +34,6 @@ your_status_api_key=$(uuidgen)
 echo "Your status check API key is: $your_status_api_key"
 echo -n "$your_status_api_key" | sha256sum | awk '{print $1}' | tr -d '\n' > ./secrets/status-api-key-hash
 ```
-
-Get your Google Maps API key in Google Cloud console and store it in the file
-`./secrets/google-maps-api-key`.
 
 Start Redis:
 
@@ -50,18 +51,19 @@ STATUS_API_KEY_HASH_FILE="secrets/status-api-key-hash" \
 ./gradlew run
 ```
 
-Run the application while bypassing Google Maps and returning random locations
-instead:
+Or run the application while bypassing Google Maps API and returning random
+locations instead:
 
 ```shell
 CACHE_URI="redis-socket:///run/user/1000/redis.sock" \
+DRY_RUN="true" \
 GOOGLE_MAPS_API_KEY_FILE="secrets/google-maps-api-key" \
 JWT_SECRET_FILE="secrets/jwt-secret" \
 STATUS_API_KEY_HASH_FILE="secrets/status-api-key-hash" \
-./gradlew run --args='-config=application-demo.conf'
+./gradlew run
 ```
 
-Check the application status:
+Finally, you can check the status of the running application:
 
 ```shell
 curl -i -H "X-Api-Key: $your_status_api_key" "https://127.0.0.1:8080/v1/google-maps/status"

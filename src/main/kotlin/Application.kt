@@ -51,16 +51,16 @@ fun Application.rootModule() {
         }
     }
     install(StatusPages) {
-        exception<GoogleMapsNotFoundException> { call, _ ->
+        exception<UpstreamNotFoundException> { call, _ ->
             call.respondText(text = "Not found", status = HttpStatusCode.NotFound)
         }
-        exception<GoogleMapsUnauthorizedException> { call, cause ->
-            call.application.environment.log.error("Google Maps unauthorized exception", cause)
-            call.respondText(text = "Google Maps request failed", status = HttpStatusCode.InternalServerError)
+        exception<UpstreamUnauthorizedException> { call, cause ->
+            call.application.environment.log.error("Upstream unauthorized exception", cause)
+            call.respondText(text = "Upstream request failed", status = HttpStatusCode.InternalServerError)
         }
-        exception<GoogleMapsUnknownException> { call, cause ->
-            call.application.environment.log.error("Google Maps unknown exception", cause)
-            call.respondText(text = "Google Maps request failed", status = HttpStatusCode.InternalServerError)
+        exception<UpstreamUnknownException> { call, cause ->
+            call.application.environment.log.error("Upstream unknown exception", cause)
+            call.respondText(text = "Upstream request failed", status = HttpStatusCode.InternalServerError)
         }
         status(HttpStatusCode.TooManyRequests) { call, status ->
             val retryAfter = call.response.headers["Retry-After"]
