@@ -63,6 +63,19 @@ STATUS_API_KEY_HASH_FILE="secrets/status-api-key-hash" \
 ./gradlew run
 ```
 
+Or run the application with generous rate limiting:
+
+```shell
+CACHE_URI="redis-socket:///run/user/1000/redis.sock" \
+GOOGLE_MAPS_API_KEY_FILE="secrets/google-maps-api-key" \
+JWT_SECRET_FILE="secrets/jwt-secret" \
+RATE_LIMIT_DEFAULT=200 \
+RATE_LIMIT_LOGIN=200 \
+RATE_LIMIT_REGISTER=200 \
+STATUS_API_KEY_HASH_FILE="secrets/status-api-key-hash" \
+./gradlew run
+```
+
 Finally, you can check the status of the running application:
 
 ```shell
