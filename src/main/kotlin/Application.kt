@@ -14,8 +14,16 @@ import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
 fun Application.rootModule() {
+    val defaultLimit = environment.config.property("rateLimit.defaultLimit").getString()
+        .toInt()
     val defaultRefillPeriod = environment.config.property("rateLimit.defaultRefillPeriodSec").getString()
         .toInt().seconds
+    val loginLimit = environment.config.property("rateLimit.loginLimit").getString()
+        .toInt()
+    val loginRefillPeriod = environment.config.property("rateLimit.loginRefillPeriodSec").getString()
+        .toInt().seconds
+    val registerLimit = environment.config.property("rateLimit.registerLimit").getString()
+        .toInt()
     val registerRefillPeriod = environment.config.property("rateLimit.registerRefillPeriodSec").getString()
         .toInt().seconds
 
@@ -24,13 +32,19 @@ fun Application.rootModule() {
     }
     install(RateLimit) {
         register {
-            rateLimiter(limit = 5, refillPeriod = defaultRefillPeriod)
+            rateLimiter(limit = defaultLimit, refillPeriod = defaultRefillPeriod)
+            requestKey { applicationCall ->
+                applicationCall.request.headers["X-Real-Ip"]?.let { ipToRateLimitBlock(it) } ?: ""
+            }
+        }
+        register(RateLimitName("login")) {
+            rateLimiter(limit = loginLimit, refillPeriod = loginRefillPeriod)
             requestKey { applicationCall ->
                 applicationCall.request.headers["X-Real-Ip"]?.let { ipToRateLimitBlock(it) } ?: ""
             }
         }
         register(RateLimitName("register")) {
-            rateLimiter(limit = 5, refillPeriod = registerRefillPeriod)
+            rateLimiter(limit = registerLimit, refillPeriod = registerRefillPeriod)
             requestKey { applicationCall ->
                 applicationCall.request.headers["X-Real-Ip"]?.let { ipToRateLimitBlock(it) } ?: ""
             }

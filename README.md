@@ -40,7 +40,8 @@ JWT_SECRET_FILE="secrets/jwt-secret" \
 ./gradlew run
 ```
 
-Run the application while bypassing Google Maps and returning random locations:
+Run the application while bypassing Google Maps and returning random locations
+instead:
 
 ```shell
 CACHE_URI="redis-socket:///run/user/1000/redis.sock" \
@@ -70,3 +71,6 @@ java -Xms128m -Xmx256m -jar "build/libs/GeoShare Server-all.jar" -port=8080
 
 Feel free to remix this project under the terms of the GNU General Public
 License version 3 or later. See [COPYING](./COPYING) and [NOTICE](./NOTICE).
+
+Some components are derived from third-party code under other compatible
+licenses; see individual subdirectories.

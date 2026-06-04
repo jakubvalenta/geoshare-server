@@ -90,7 +90,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
         }
     }
     routing {
-        rateLimit {
+        rateLimit(RateLimitName("login")) {
             post("/v1/auth/challenge") {
                 val challenge = ByteArray(32).also { secureRandom.nextBytes(it) }
                 val challengeCacheKey = challenge.sha256Hex()
@@ -167,7 +167,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
             }
         }
 
-        rateLimit {
+        rateLimit(RateLimitName("login")) {
             post("/v1/auth/login") {
                 val req = call.receive<LoginRequest>()
                 val challenge = req.challenge.base64Decode()
