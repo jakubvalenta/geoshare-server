@@ -1,12 +1,17 @@
 package net.geoshare_app
 
 import io.ktor.client.call.body
+import io.ktor.client.request.head
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.config.ApplicationConfig
+import io.ktor.server.config.MapApplicationConfig
+import io.ktor.server.config.mergeWith
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
@@ -19,12 +24,13 @@ import net.geoshare_app.testing.Tokens
 import net.geoshare_app.testing.jsonClient
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthenticationTest {
     @Test
-    fun `challenge route always returns challenge of 32 bytes`() = testApplication {
+    fun `challenge route - always returns challenge of 32 bytes`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -40,7 +46,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `register route when challenge is not found in cache returns 401`() = testApplication {
+    fun `register route - when challenge is not found in cache, it returns 401`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -69,7 +75,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `register route when challenge has been used returns 401`() = testApplication {
+    fun `register route - when challenge has been used, it returns 401`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -118,7 +124,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `register route when challenge expires returns 401`() = runTest {
+    fun `register route - when challenge expires, it returns 401`() = runTest {
         testApplication(testScheduler) {
             environment {
                 config = ApplicationConfig("application-test.conf")
@@ -154,7 +160,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `register route when certificate chain is invalid returns 401`() = testApplication {
+    fun `register route - when certificate chain is invalid, it returns 401`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -186,7 +192,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `register route when signature is invalid returns 401`() = testApplication {
+    fun `register route - when signature is invalid, it returns 401`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -218,7 +224,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `register route when certificate has been revoked returns 401`() = runTest {
+    fun `register route - when certificate has been revoked, it returns 401`() = runTest {
         testApplication {
             environment {
                 config = ApplicationConfig("application-test.conf")
@@ -252,7 +258,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `register route when signature is valid returns token`() = testApplication {
+    fun `register route - when signature is valid, it returns token`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -287,7 +293,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `login route when challenge is not found returns 401`() = testApplication {
+    fun `login route - when challenge is not found, it returns 401`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -316,7 +322,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `login route when challenge has been used returns 401`() = testApplication {
+    fun `login route - when challenge has been used, it returns 401`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -383,7 +389,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `login route when challenge expires returns 401`() = runTest {
+    fun `login route - when challenge expires, it returns 401`() = runTest {
         testApplication(testScheduler) {
             environment {
                 config = ApplicationConfig("application-test.conf")
@@ -437,7 +443,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `login route when device is not found returns 401`() = testApplication {
+    fun `login route - when device is not found, it returns 401`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -469,7 +475,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `login route when device expires returns 401`() = runTest {
+    fun `login route - when device expires, it returns 401`() = runTest {
         testApplication(testScheduler) {
             environment {
                 config = ApplicationConfig("application-test.conf")
@@ -523,7 +529,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `login route when signature is invalid returns 401`() = testApplication {
+    fun `login route - when signature is invalid, it returns 401`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -573,7 +579,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `login route when signature is valid returns token`() = testApplication {
+    fun `login route - when signature is valid, it returns token`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -626,7 +632,7 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `login route when signature is valid refreshes device expiration`() =
+    fun `login route - when signature is valid, it refreshes device expiration`() =
         runTest {
             testApplication(testScheduler) {
                 environment {
@@ -700,4 +706,79 @@ class AuthenticationTest {
                 assertEquals(HttpStatusCode.OK, res2.status)
             }
         }
+
+    @Test
+    fun `status route - when called with correct token and cache ping succeeds, it returns 200`() = testApplication {
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "googleMaps.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+        }
+
+        val res = client.head("/v1/auth/status") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(HttpStatusCode.OK, res.status)
+    }
+
+    @Test
+    fun `status route - when called with correct token and cache ping fails, it returns 500`() = testApplication {
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "googleMaps.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            val cache = object : Cache {
+                override suspend fun get(key: String) = ""
+                override suspend fun set(key: String, value: String) {}
+                override suspend fun set(key: String, value: String, expire: Duration) {}
+                override suspend fun delete(key: String) {}
+                override suspend fun expire(key: String, expire: Duration) {}
+                override suspend fun ping() = false
+                override fun close() {}
+            }
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+        }
+
+        val res = client.head("/v1/auth/status") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(HttpStatusCode.InternalServerError, res.status)
+        assertEquals("Failed", res.bodyAsText())
+    }
+
+    @Test
+    fun `status route - when called with incorrect token, it returns 401`() = testApplication {
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "googleMaps.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+        }
+
+        val res = client.head("/v1/auth/status") {
+            headers[HttpHeaders.Authorization] = "Bearer spam"
+        }
+        assertEquals(HttpStatusCode.Unauthorized, res.status)
+    }
 }

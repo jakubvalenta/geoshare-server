@@ -5,6 +5,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.respondError
 import io.ktor.client.request.accept
 import io.ktor.client.request.get
+import io.ktor.client.request.head
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -689,9 +690,8 @@ class GoogleMapsTest {
                 )
             }
 
-            val res = client.get("/v1/google-maps/status") {
+            val res = client.head("/v1/google-maps/status") {
                 headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
-                accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.OK, res.status)
         }
@@ -734,9 +734,8 @@ class GoogleMapsTest {
                 )
             }
 
-            val res = client.get("/v1/google-maps/status") {
+            val res = client.head("/v1/google-maps/status") {
                 headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
-                accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.InternalServerError, res.status)
             assertEquals("Unexpected location", res.bodyAsText())
@@ -778,9 +777,8 @@ class GoogleMapsTest {
                 )
             }
 
-            val res = client.get("/v1/google-maps/status") {
+            val res = client.head("/v1/google-maps/status") {
                 headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
-                accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.InternalServerError, res.status)
             assertEquals("Unexpected location", res.bodyAsText())
@@ -813,9 +811,8 @@ class GoogleMapsTest {
                 )
             }
 
-            val res = client.get("/v1/google-maps/status") {
+            val res = client.head("/v1/google-maps/status") {
                 headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
-                accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.InternalServerError, res.status)
             assertEquals("Upstream request failed", res.bodyAsText())
@@ -848,9 +845,8 @@ class GoogleMapsTest {
                 )
             }
 
-            val res = client.get("/v1/google-maps/status") {
+            val res = client.head("/v1/google-maps/status") {
                 headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
-                accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.NotFound, res.status)
         }
@@ -875,9 +871,8 @@ class GoogleMapsTest {
                 )
             }
 
-            val res = client.get("/v1/google-maps/status") {
+            val res = client.head("/v1/google-maps/status") {
                 headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
-                accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.InternalServerError, res.status)
             assertEquals("Upstream request failed", res.bodyAsText())
@@ -900,9 +895,8 @@ class GoogleMapsTest {
             googleMapsModule(engine = this@GoogleMapsTest.engine)
         }
 
-        val res = client.get("/v1/google-maps/status") {
-            headers["X-Api-Key"] = "spam"
-            accept(ContentType.Application.Json)
+        val res = client.head("/v1/google-maps/status") {
+            headers[HttpHeaders.Authorization] = "Bearer spam"
         }
         assertEquals(HttpStatusCode.Unauthorized, res.status)
     }

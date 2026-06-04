@@ -35,5 +35,7 @@ class FakeCache(private val timeSource: TimeSource = TimeSource.Monotonic) : Cac
         }
     }
 
+    override suspend fun ping() = true
+
     override fun close() {}
 }

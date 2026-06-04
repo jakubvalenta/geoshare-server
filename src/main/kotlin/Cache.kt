@@ -3,6 +3,7 @@ package net.geoshare_app
 import io.ktor.server.plugins.di.annotations.Property
 import io.lettuce.core.ExperimentalLettuceCoroutinesApi
 import io.lettuce.core.RedisClient
+import io.lettuce.core.RedisException
 import io.lettuce.core.SetArgs
 import io.lettuce.core.api.coroutines
 import kotlin.time.Duration
@@ -13,6 +14,7 @@ interface Cache : AutoCloseable {
     suspend fun set(key: String, value: String, expire: Duration)
     suspend fun delete(key: String)
     suspend fun expire(key: String, expire: Duration)
+    suspend fun ping(): Boolean
 }
 
 @OptIn(ExperimentalLettuceCoroutinesApi::class)
@@ -39,6 +41,14 @@ class CacheImpl(connectionUri: String) : Cache {
     override suspend fun expire(key: String, expire: Duration) {
         commands.expire(key, expire.inWholeSeconds)
     }
+
+    override suspend fun ping() =
+        try {
+            commands.ping()
+            true
+        } catch (_: RedisException) {
+            false
+        }
 
     override fun close() {
         connection.close()

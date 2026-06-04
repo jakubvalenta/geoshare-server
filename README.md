@@ -79,7 +79,8 @@ STATUS_API_TOKEN_HASH_FILE="secrets/status-api-token-hash" \
 Finally, you can check the status of the running application:
 
 ```shell
-curl -i -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/google-maps/status"
+curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/auth/status"
+curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/google-maps/status"
 ```
 
 ### Deployment

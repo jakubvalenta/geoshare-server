@@ -20,6 +20,7 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.resources.Resources
 import io.ktor.server.resources.get
+import io.ktor.server.resources.head
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import kotlinx.serialization.Serializable
@@ -89,7 +90,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create()) {
         }
         authenticate("status") {
             rateLimit {
-                get<StatusResource> {
+                head<StatusResource> {
                     val res = callGeocodeAddressApi(engine, apiKey, dryRun, STATUS_QUERY)
                     if (res.results.firstOrNull()?.location != GoogleMapsLocation(47.5951518, -122.3316394)) {
                         call.respond(HttpStatusCode.InternalServerError, "Unexpected location")
