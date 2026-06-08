@@ -125,30 +125,30 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                     val verifier = certificateVerification.getVerifier()
                     val certificateChain = req.certificateChain.map { it.base64Decode().readCertificateFromDEROrPEM() }
                     when (val verificationResult = verifier.verify(certificateChain)) {
-                        is VerificationResult.Success -> {
-                            when (verificationResult.verifiedBootState) {
-                                VerifiedBootState.VERIFIED,
-                                VerifiedBootState.SELF_SIGNED ->
-                                    // Validate signature
-                                    if (verificationResult.publicKey.verifySignature(signature, challenge)) {
-                                        // Generate token
-                                        val publicKeyFingerprint = verificationResult.publicKey.fingerprint()
-                                        val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire)
-                                        // Register device before deleting the challenge, so the client can retry if
-                                        // device registration crashes
-                                        cache.set("device:$publicKeyFingerprint", "", deviceExpire)
-                                        // Delete challenge only after all validations pass, so the client can retry if
-                                        // anything crashes
-                                        cache.delete("challenge:$challengeCacheKey")
-                                        TokenResponse(token)
-                                    } else {
-                                        ErrorResponse("Invalid signature")
-                                    }
-
-                                else ->
-                                    ErrorResponse("Invalid certificate chain")
+                        is VerificationResult.Success ->
+                            if (
+                                verificationResult.verifiedBootState == VerifiedBootState.VERIFIED ||
+                                (verificationResult.verifiedBootState == VerifiedBootState.SELF_SIGNED
+                                    && verificationResult.verifiedBootFingerprint in certificateVerification.verifiedBootFingerprints)
+                            ) {
+                                // Validate signature
+                                if (verificationResult.publicKey.verifySignature(signature, challenge)) {
+                                    // Generate token
+                                    val publicKeyFingerprint = verificationResult.publicKey.fingerprint()
+                                    val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire)
+                                    // Register device before deleting the challenge, so the client can retry if
+                                    // device registration crashes
+                                    cache.set("device:$publicKeyFingerprint", "", deviceExpire)
+                                    // Delete challenge only after all validations pass, so the client can retry if
+                                    // anything crashes
+                                    cache.delete("challenge:$challengeCacheKey")
+                                    TokenResponse(token)
+                                } else {
+                                    ErrorResponse("Invalid signature")
+                                }
+                            } else {
+                                ErrorResponse("Invalid certificate chain")
                             }
-                        }
 
                         is VerificationResult.ChallengeMismatch ->
                             ErrorResponse("Challenge mismatch")
