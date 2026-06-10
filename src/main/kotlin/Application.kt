@@ -4,6 +4,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.ratelimit.RateLimitName
@@ -34,7 +36,18 @@ fun Application.rootModule() {
         register {
             rateLimiter(limit = defaultLimit, refillPeriod = defaultRefillPeriod)
             requestKey { applicationCall ->
-                applicationCall.request.headers["X-Real-Ip"]?.let { ipToRateLimitBlock(it) } ?: ""
+                // Users with full access get their own rate limiting bucket, others get a shared bucket
+                // TODO Test rate limiting based on JWT access
+                val principal = applicationCall.principal<JWTPrincipal>()
+                val subject = principal?.subject
+                if (subject != null) {
+                    when (principal.getAccess()) {
+                        Access.FULL -> subject
+                        Access.LIMITED, null -> "shared"
+                    }
+                } else {
+                    "shared"
+                }
             }
         }
         register(RateLimitName("login")) {

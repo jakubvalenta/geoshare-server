@@ -30,6 +30,8 @@ import java.util.Date
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
+enum class Access { FULL, LIMITED }
+
 @Serializable
 data class ChallengeResponse(val challenge: String)
 
@@ -47,11 +49,22 @@ data class ErrorResponse(val message: String) : AuthenticationResponse
 @Serializable
 data class TokenResponse(val token: String) : AuthenticationResponse
 
-private fun createToken(publicKeyFingerprint: String, jwtSecret: ByteArray, expire: Duration): String =
+private fun createToken(publicKeyFingerprint: String, jwtSecret: ByteArray, expire: Duration, access: Access): String =
     JWT.create()
         .withSubject(publicKeyFingerprint)
         .withExpiresAt(Date(System.currentTimeMillis() + expire.inWholeMilliseconds))
+        .withClaim("access", access.toString())
         .sign(Algorithm.HMAC256(jwtSecret))
+
+fun JWTPrincipal.getAccess(): Access? =
+    this.payload.getClaim("access")?.asString()?.toAccess()
+
+fun String.toAccess(): Access? =
+    try {
+        Access.valueOf(this)
+    } catch (_: IllegalArgumentException) {
+        null
+    }
 
 fun Application.authenticationModule(cache: Cache, certificateVerification: CertificateVerification) {
     val challengeExpire = environment.config.property("auth.challengeExpireSec").getString().toInt().seconds
@@ -128,17 +141,26 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                         is VerificationResult.Success ->
                             if (
                                 verificationResult.verifiedBootState == VerifiedBootState.VERIFIED ||
-                                (verificationResult.verifiedBootState == VerifiedBootState.SELF_SIGNED
-                                    && verificationResult.verifiedBootFingerprint in certificateVerification.verifiedBootFingerprints)
+                                verificationResult.verifiedBootState == VerifiedBootState.SELF_SIGNED
                             ) {
                                 // Validate signature
                                 if (verificationResult.publicKey.verifySignature(signature, challenge)) {
+                                    // Choose limited access for users running custom ROMs
+                                    // TODO Test access in register route
+                                    val access = if (
+                                        verificationResult.verifiedBootState == VerifiedBootState.SELF_SIGNED ||
+                                        verificationResult.verifiedBootFingerprint !in certificateVerification.verifiedBootFingerprints
+                                    ) {
+                                        Access.LIMITED
+                                    } else {
+                                        Access.FULL
+                                    }
                                     // Generate token
                                     val publicKeyFingerprint = verificationResult.publicKey.fingerprint()
-                                    val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire)
+                                    val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire, access)
                                     // Register device before deleting the challenge, so the client can retry if
                                     // device registration crashes
-                                    cache.set("device:$publicKeyFingerprint", "", deviceExpire)
+                                    cache.set("device:$publicKeyFingerprint", access.toString(), deviceExpire)
                                     // Delete challenge only after all validations pass, so the client can retry if
                                     // anything crashes
                                     cache.delete("challenge:$challengeCacheKey")
@@ -191,12 +213,14 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                     // Validate device
                     val publicKey = req.publicKey.base64Decode().readPublicKeyFromDER()
                     val publicKeyFingerprint = publicKey.fingerprint()
-                    if (cache.get("device:$publicKeyFingerprint") == null) {
+                    // TODO Test Access in login route
+                    val access = cache.get("device:$publicKeyFingerprint")?.toAccess()
+                    if (access == null) {
                         ErrorResponse("Unknown device")
                     } else {
                         // Validate signature
                         if (publicKey.verifySignature(signature, challenge)) {
-                            val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire)
+                            val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire, access)
                             // Refresh device expiration, so active devices never expire
                             cache.expire("device:$publicKeyFingerprint", deviceExpire)
                             // Delete challenge only after all validations pass, so the client can retry if anything
