@@ -17,6 +17,13 @@ object Tokens {
             .sign(Algorithm.HMAC256(JWT_SECRET))
     }
 
+    val shared: String by lazy {
+        JWT.create()
+            .withSubject("shared")
+            .withExpiresAt(Date(System.currentTimeMillis() - 1.minutes.inWholeMilliseconds))
+            .sign(Algorithm.HMAC256(JWT_SECRET))
+    }
+
     val expired: String by lazy {
         JWT.create()
             .withSubject(Certs.leafKey.public.fingerprint())

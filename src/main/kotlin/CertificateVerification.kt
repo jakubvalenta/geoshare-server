@@ -8,13 +8,13 @@ import java.time.Instant
 interface CertificateVerification {
     val cache: Cache
 
-    /**
-     * Graphene OS verified boot fingerprints.
-     *
-     * See https://grapheneos.org/articles/attestation-compatibility-guide
-     */
-    val verifiedBootFingerprints
-        get() = setOf(
+    suspend fun getVerifier(): Verifier
+
+    suspend fun fetchRevokedSerials(): Set<String>
+
+    fun isKnownBootFingerprint(verifiedBootFingerprint: String?): Boolean =
+        when (verifiedBootFingerprint) {
+            // Graphene OS boot fingerprints; see https://grapheneos.org/articles/attestation-compatibility-guide
             "d8f879d10419eddc9fcda6280718be763f6bf12299e1f72df3ea8ad8a8eb7f80",
             "55a2d44103e56d5ec65496399c417987ba77730e6488fc60ba058d09fc3caee3",
             "141d7fc32af7958a416f2661b37cf6f27bfb376fb5ce616aeaa27a82c7a04f74",
@@ -35,12 +35,11 @@ interface CertificateVerification {
             "3efe5392be3ac38afb894d13de639e521675e62571a8a9b3ef9fc8c44fd17fa1",
             "08c860350a9600692d10c8512f7b8e80707757468e8fbfeea2a870c0a83d6031",
             "439b76524d94c40652ce1bf0d8243773c634d2f99ba3160d8d02aa5e29ff925c",
-            "f0a890375d1405e62ebfd87e8d3f475f948ef031bbf9ddd516d5f600a23677e8",
-        )
+            "f0a890375d1405e62ebfd87e8d3f475f948ef031bbf9ddd516d5f600a23677e8"
+                -> true
 
-    suspend fun getVerifier(): Verifier
-
-    suspend fun fetchRevokedSerials(): Set<String>
+            else -> false
+        }
 
     suspend fun getRevokedSerials(): Set<String> =
         cache.get(REVOKED_SERIALS_CACHE_KEY)?.split(REVOKED_SERIALS_CACHE_VALUE_SEPARATOR)?.toSet() ?: emptySet()

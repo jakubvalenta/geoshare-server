@@ -30,8 +30,6 @@ import java.util.Date
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
-enum class Access { FULL, LIMITED }
-
 @Serializable
 data class ChallengeResponse(val challenge: String)
 
@@ -49,22 +47,11 @@ data class ErrorResponse(val message: String) : AuthenticationResponse
 @Serializable
 data class TokenResponse(val token: String) : AuthenticationResponse
 
-private fun createToken(publicKeyFingerprint: String, jwtSecret: ByteArray, expire: Duration, access: Access): String =
+private fun createToken(subject: String, secret: ByteArray, expire: Duration): String =
     JWT.create()
-        .withSubject(publicKeyFingerprint)
+        .withSubject(subject)
         .withExpiresAt(Date(System.currentTimeMillis() + expire.inWholeMilliseconds))
-        .withClaim("access", access.toString())
-        .sign(Algorithm.HMAC256(jwtSecret))
-
-fun JWTPrincipal.getAccess(): Access? =
-    this.payload.getClaim("access")?.asString()?.toAccess()
-
-fun String.toAccess(): Access? =
-    try {
-        Access.valueOf(this)
-    } catch (_: IllegalArgumentException) {
-        null
-    }
+        .sign(Algorithm.HMAC256(secret))
 
 fun Application.authenticationModule(cache: Cache, certificateVerification: CertificateVerification) {
     val challengeExpire = environment.config.property("auth.challengeExpireSec").getString().toInt().seconds
@@ -99,10 +86,8 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
         jwt("api") {
             verifier(JWT.require(Algorithm.HMAC256(jwtSecret)).build())
             validate { credential ->
-                if (!credential.payload.subject.isNullOrEmpty()) {
-                    JWTPrincipal(credential.payload)
-                } else {
-                    null
+                credential.payload.takeIf { !it.subject.isNullOrEmpty() }?.let { payload ->
+                    JWTPrincipal(payload)
                 }
             }
         }
@@ -145,22 +130,24 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                             ) {
                                 // Validate signature
                                 if (verificationResult.publicKey.verifySignature(signature, challenge)) {
-                                    // Choose limited access for users running custom ROMs
-                                    // TODO Test access in register route
-                                    val access = if (
-                                        verificationResult.verifiedBootState == VerifiedBootState.SELF_SIGNED ||
-                                        verificationResult.verifiedBootFingerprint !in certificateVerification.verifiedBootFingerprints
-                                    ) {
-                                        Access.LIMITED
-                                    } else {
-                                        Access.FULL
-                                    }
-                                    // Generate token
                                     val publicKeyFingerprint = verificationResult.publicKey.fingerprint()
-                                    val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire, access)
+                                    // Generate token with unique subject for devices with verified boot, and with
+                                    // shared subject for other devices, such as custom ROMs. This way custom ROMs can
+                                    // still register but they get a shared rate limiting bucket, because rate limiting
+                                    // is based on the token subject
+                                    // TODO Test subject in registration route
+                                    val subject = if (
+                                        verificationResult.verifiedBootState == VerifiedBootState.VERIFIED ||
+                                        certificateVerification.isKnownBootFingerprint(verificationResult.verifiedBootFingerprint)
+                                    ) {
+                                        publicKeyFingerprint
+                                    } else {
+                                        "shared"
+                                    }
+                                    val token = createToken(subject, jwtSecret, jwtExpire)
                                     // Register device before deleting the challenge, so the client can retry if
                                     // device registration crashes
-                                    cache.set("device:$publicKeyFingerprint", access.toString(), deviceExpire)
+                                    cache.set("device:$publicKeyFingerprint", subject, deviceExpire)
                                     // Delete challenge only after all validations pass, so the client can retry if
                                     // anything crashes
                                     cache.delete("challenge:$challengeCacheKey")
@@ -213,14 +200,14 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                     // Validate device
                     val publicKey = req.publicKey.base64Decode().readPublicKeyFromDER()
                     val publicKeyFingerprint = publicKey.fingerprint()
-                    // TODO Test Access in login route
-                    val access = cache.get("device:$publicKeyFingerprint")?.toAccess()
-                    if (access == null) {
+                    val subject = cache.get("device:$publicKeyFingerprint")
+                    if (subject == null) {
                         ErrorResponse("Unknown device")
                     } else {
                         // Validate signature
                         if (publicKey.verifySignature(signature, challenge)) {
-                            val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire, access)
+                            // TODO Test subject in login route
+                            val token = createToken(subject, jwtSecret, jwtExpire)
                             // Refresh device expiration, so active devices never expire
                             cache.expire("device:$publicKeyFingerprint", deviceExpire)
                             // Delete challenge only after all validations pass, so the client can retry if anything

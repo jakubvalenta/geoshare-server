@@ -36,18 +36,8 @@ fun Application.rootModule() {
         register {
             rateLimiter(limit = defaultLimit, refillPeriod = defaultRefillPeriod)
             requestKey { applicationCall ->
-                // Users with full access get their own rate limiting bucket, others get a shared bucket
-                // TODO Test rate limiting based on JWT access
-                val principal = applicationCall.principal<JWTPrincipal>()
-                val subject = principal?.subject
-                if (subject != null) {
-                    when (principal.getAccess()) {
-                        Access.FULL -> subject
-                        Access.LIMITED, null -> "shared"
-                    }
-                } else {
-                    "shared"
-                }
+                // TODO Test rate limiting based on JWT subject
+                applicationCall.principal<JWTPrincipal>()?.subject ?: ""
             }
         }
         register(RateLimitName("login")) {
