@@ -36,7 +36,6 @@ fun Application.rootModule() {
         register {
             rateLimiter(limit = defaultLimit, refillPeriod = defaultRefillPeriod)
             requestKey { applicationCall ->
-                // TODO Test rate limiting based on JWT subject
                 applicationCall.principal<JWTPrincipal>()?.subject ?: ""
             }
         }
