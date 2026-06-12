@@ -184,7 +184,7 @@ class ApplicationTest {
     }
 
     @Test
-    fun `rate limited route based on jwt subject - when called too fast with the same token, it returns 429`() = testApplication {
+    fun `rate limited route based on jwt subject - when called too fast with the same token of a verified device, it returns 429`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -214,6 +214,36 @@ class ApplicationTest {
     }
 
     @Test
+    fun `rate limited route based on jwt subject - when called too fast with the same token of an unverified device, it returns 429`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.conf")
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+            googleMapsModule(engine = this@ApplicationTest.engine)
+        }
+
+        // The first few requests pass
+        repeat(5) {
+            val res = client.get("/v1/google-maps/geocode/address/$query") {
+                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validUnverifiedDevice}"
+                headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.OK, res.status)
+        }
+        // The next request is rate-limited
+        val res = client.get("/v1/google-maps/geocode/address/$query") {
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validUnverifiedDevice}" // Same token
+            headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.TooManyRequests, res.status)
+    }
+
+    @Test
     fun `rate limited route based on jwt subject - when called too fast with different tokens, it returns 200`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
@@ -236,7 +266,7 @@ class ApplicationTest {
         }
         // The next request passes too
         val res = client.get("/v1/google-maps/geocode/address/$query") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.unverifiedSubject}" // Different token
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validUnverifiedDevice}" // Different token
             headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
             accept(ContentType.Application.Json)
         }

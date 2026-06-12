@@ -136,7 +136,6 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                             if (verificationResult.publicKey.verifySignature(signature, challenge)) {
                                 // Generate token
                                 val publicKeyFingerprint = verificationResult.publicKey.fingerprint()
-                                // TODO Test
                                 val device = if (
                                     verificationResult.verifiedBootState == VerifiedBootState.VERIFIED ||
                                     (verificationResult.verifiedBootState == VerifiedBootState.SELF_SIGNED &&
@@ -149,7 +148,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                                 val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire, device)
                                 // Register device before deleting the challenge, so the client can retry if
                                 // device registration crashes
-                                cache.set("device:$publicKeyFingerprint", "", deviceExpire)
+                                cache.set("device:$publicKeyFingerprint", device.name, deviceExpire)
                                 // Delete challenge only after all validations pass, so the client can retry if
                                 // anything crashes
                                 cache.delete("challenge:$challengeCacheKey")
@@ -206,7 +205,6 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                     } else {
                         // Validate signature
                         if (publicKey.verifySignature(signature, challenge)) {
-                            // TODO Test
                             val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire, device)
                             // Refresh device expiration, so active devices never expire
                             cache.expire("device:$publicKeyFingerprint", deviceExpire)

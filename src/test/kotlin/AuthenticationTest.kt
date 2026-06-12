@@ -97,10 +97,9 @@ class AuthenticationTest {
             )
         }
         assertEquals(HttpStatusCode.OK, res.status)
-        assertEquals(
-            Certs.leafKey.public.fingerprint(),
-            Tokens.verify(res.body<TokenResponse>().token).subject,
-        )
+        val token = Tokens.verify(res.body<TokenResponse>().token)
+        assertEquals(Certs.leafKey.public.fingerprint(), token.subject)
+        assertEquals(Device.VERIFIED, token.getClaim("device").asString().toDevice())
 
         // Register 2
         val res2 = jsonClient.post("/v1/auth/register") {
@@ -280,14 +279,13 @@ class AuthenticationTest {
             )
         }
         assertEquals(HttpStatusCode.OK, res.status)
-        assertEquals(
-            Certs.leafKey.public.fingerprint(),
-            Tokens.verify(res.body<TokenResponse>().token).subject,
-        )
+        val token = Tokens.verify(res.body<TokenResponse>().token)
+        assertEquals(Certs.leafKey.public.fingerprint(), token.subject)
+        assertEquals(Device.VERIFIED, token.getClaim("device").asString().toDevice())
     }
 
     @Test
-    fun `register route - when signature is valid with self-signed key extension, it returns token with unverified subject`() = testApplication {
+    fun `register route - when signature is valid with self-signed key extension with unknown boot key, it returns token with unverified device`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -315,10 +313,9 @@ class AuthenticationTest {
             )
         }
         assertEquals(HttpStatusCode.OK, res.status)
-        assertEquals(
-            "unverified",
-            Tokens.verify(res.body<TokenResponse>().token).subject,
-        )
+        val token = Tokens.verify(res.body<TokenResponse>().token)
+        assertEquals(Certs.leafKey.public.fingerprint(), token.subject)
+        assertEquals(Device.UNVERIFIED, token.getClaim("device").asString().toDevice())
     }
 
     @Test
@@ -397,10 +394,9 @@ class AuthenticationTest {
             )
         }
         assertEquals(HttpStatusCode.OK, res.status)
-        assertEquals(
-            Certs.leafKey.public.fingerprint(),
-            Tokens.verify(res.body<TokenResponse>().token).subject,
-        )
+        val token = Tokens.verify(res.body<TokenResponse>().token)
+        assertEquals(Certs.leafKey.public.fingerprint(), token.subject)
+        assertEquals(Device.VERIFIED, token.getClaim("device").asString().toDevice())
 
         // Login again
         val res2 = jsonClient.post("/v1/auth/login") {
@@ -654,10 +650,61 @@ class AuthenticationTest {
             )
         }
         assertEquals(HttpStatusCode.OK, res.status)
-        assertEquals(
-            Certs.leafKey.public.fingerprint(),
-            Tokens.verify(res.body<TokenResponse>().token).subject,
-        )
+        val token = Tokens.verify(res.body<TokenResponse>().token)
+        assertEquals(Certs.leafKey.public.fingerprint(), token.subject)
+        assertEquals(Device.VERIFIED, token.getClaim("device").asString().toDevice())
+    }
+
+    @Test
+    fun `login route - when signature is valid and device is unverified, it returns token with unverified device`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.conf")
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+        }
+
+        // Registration challenge
+        val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+            .body<ChallengeResponse>().challenge.base64Decode()
+
+        // Register
+        val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
+        val certificateChain = CertLists.selfSigned
+        jsonClient.post("/v1/auth/register") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                RegisterRequest(
+                    challenge = registrationChallenge.base64Encode(),
+                    signature = registrationSignature.base64Encode(),
+                    certificateChain = certificateChain.map { it.encoded.base64Encode() },
+                )
+            )
+        }
+
+        // Login challenge
+        val loginChallenge = jsonClient.post("/v1/auth/challenge")
+            .body<ChallengeResponse>().challenge.base64Decode()
+
+        // Login
+        val loginSignature = Certs.leafKey.private.sign(loginChallenge)
+        val publicKey = Certs.leafKey.public
+        val res = jsonClient.post("/v1/auth/login") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                LoginRequest(
+                    challenge = loginChallenge.base64Encode(),
+                    signature = loginSignature.base64Encode(),
+                    publicKey = publicKey.encoded.base64Encode(),
+                )
+            )
+        }
+        assertEquals(HttpStatusCode.OK, res.status)
+        val token = Tokens.verify(res.body<TokenResponse>().token)
+        assertEquals(Certs.leafKey.public.fingerprint(), token.subject)
+        assertEquals(Device.UNVERIFIED, token.getClaim("device").asString().toDevice())
     }
 
     @Test
