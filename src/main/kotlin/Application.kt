@@ -36,7 +36,12 @@ fun Application.rootModule() {
         register {
             rateLimiter(limit = defaultLimit, refillPeriod = defaultRefillPeriod)
             requestKey { applicationCall ->
-                applicationCall.principal<JWTPrincipal>()?.subject ?: ""
+                // TODO Test
+                applicationCall.principal<JWTPrincipal>()?.let { principal ->
+                    principal.subject?.takeIf {
+                        principal.payload.getClaim("device").asString().toDevice() == Device.VERIFIED
+                    }
+                } ?: "unverified-devices"
             }
         }
         register(RateLimitName("login")) {

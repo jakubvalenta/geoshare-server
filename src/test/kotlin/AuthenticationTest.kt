@@ -287,6 +287,41 @@ class AuthenticationTest {
     }
 
     @Test
+    fun `register route - when signature is valid with self-signed key extension, it returns token with unverified subject`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.conf")
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+        }
+
+        // Registration challenge
+        val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+            .body<ChallengeResponse>().challenge.base64Decode()
+
+        // Register
+        val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
+        val certificateChain = CertLists.selfSigned
+        val res = jsonClient.post("/v1/auth/register") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                RegisterRequest(
+                    challenge = registrationChallenge.base64Encode(),
+                    signature = registrationSignature.base64Encode(),
+                    certificateChain = certificateChain.map { it.encoded.base64Encode() },
+                )
+            )
+        }
+        assertEquals(HttpStatusCode.OK, res.status)
+        assertEquals(
+            "unverified",
+            Tokens.verify(res.body<TokenResponse>().token).subject,
+        )
+    }
+
+    @Test
     fun `login route - when challenge is not found, it returns 401`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")

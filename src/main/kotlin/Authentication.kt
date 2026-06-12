@@ -45,9 +45,19 @@ data class ErrorResponse(val message: String) : AuthenticationResponse
 @Serializable
 data class TokenResponse(val token: String) : AuthenticationResponse
 
-private fun createToken(subject: String, secret: ByteArray, expire: Duration): String =
+enum class Device { VERIFIED, UNVERIFIED }
+
+fun String.toDevice(): Device? =
+    try {
+        Device.valueOf(this)
+    } catch (_: IllegalArgumentException) {
+        null
+    }
+
+private fun createToken(publicKeyFingerprint: String, secret: ByteArray, expire: Duration, device: Device): String =
     JWT.create()
-        .withSubject(subject)
+        .withSubject(publicKeyFingerprint)
+        .withClaim("device", device.name)
         .withExpiresAt(Date(System.currentTimeMillis() + expire.inWholeMilliseconds))
         .sign(Algorithm.HMAC256(secret))
 
@@ -121,41 +131,33 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                     val verifier = certificateVerification.getVerifier()
                     val certificateChain = req.certificateChain.map { it.base64Decode().readCertificateFromDEROrPEM() }
                     when (val verificationResult = verifier.verify(certificateChain)) {
-                        is VerificationResult.Success ->
-                            if (
-                                verificationResult.verifiedBootState == VerifiedBootState.VERIFIED ||
-                                verificationResult.verifiedBootState == VerifiedBootState.SELF_SIGNED
-                            ) {
-                                // Validate signature
-                                if (verificationResult.publicKey.verifySignature(signature, challenge)) {
-                                    val publicKeyFingerprint = verificationResult.publicKey.fingerprint()
-                                    // Generate token with unique subject for devices with verified boot, and with
-                                    // shared subject for other devices, such as custom ROMs. This way custom ROMs can
-                                    // still register but they get a shared rate limiting bucket, because rate limiting
-                                    // is based on the token subject
-                                    // TODO Test subject in registration route
-                                    val subject = if (
-                                        verificationResult.verifiedBootState == VerifiedBootState.VERIFIED ||
-                                        certificateVerification.isKnownBootFingerprint(verificationResult.verifiedBootFingerprint)
-                                    ) {
-                                        publicKeyFingerprint
-                                    } else {
-                                        "unverified"
-                                    }
-                                    val token = createToken(subject, jwtSecret, jwtExpire)
-                                    // Register device before deleting the challenge, so the client can retry if
-                                    // device registration crashes
-                                    cache.set("device:$publicKeyFingerprint", subject, deviceExpire)
-                                    // Delete challenge only after all validations pass, so the client can retry if
-                                    // anything crashes
-                                    cache.delete("challenge:$challengeCacheKey")
-                                    TokenResponse(token)
+                        is VerificationResult.Success -> {
+                            // Validate signature
+                            if (verificationResult.publicKey.verifySignature(signature, challenge)) {
+                                // Generate token
+                                val publicKeyFingerprint = verificationResult.publicKey.fingerprint()
+                                // TODO Test
+                                val device = if (
+                                    verificationResult.verifiedBootState == VerifiedBootState.VERIFIED ||
+                                    (verificationResult.verifiedBootState == VerifiedBootState.SELF_SIGNED &&
+                                        certificateVerification.isKnownBootFingerprint(verificationResult.verifiedBootFingerprint))
+                                ) {
+                                    Device.VERIFIED
                                 } else {
-                                    ErrorResponse("Invalid signature")
+                                    Device.UNVERIFIED
                                 }
+                                val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire, device)
+                                // Register device before deleting the challenge, so the client can retry if
+                                // device registration crashes
+                                cache.set("device:$publicKeyFingerprint", "", deviceExpire)
+                                // Delete challenge only after all validations pass, so the client can retry if
+                                // anything crashes
+                                cache.delete("challenge:$challengeCacheKey")
+                                TokenResponse(token)
                             } else {
-                                ErrorResponse("Invalid certificate chain")
+                                ErrorResponse("Invalid signature")
                             }
+                        }
 
                         is VerificationResult.ChallengeMismatch ->
                             ErrorResponse("Challenge mismatch")
@@ -198,14 +200,14 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                     // Validate device
                     val publicKey = req.publicKey.base64Decode().readPublicKeyFromDER()
                     val publicKeyFingerprint = publicKey.fingerprint()
-                    val subject = cache.get("device:$publicKeyFingerprint")
-                    if (subject == null) {
+                    val device = cache.get("device:$publicKeyFingerprint")?.toDevice()
+                    if (device == null) {
                         ErrorResponse("Unknown device")
                     } else {
                         // Validate signature
                         if (publicKey.verifySignature(signature, challenge)) {
-                            // TODO Test subject in login route
-                            val token = createToken(subject, jwtSecret, jwtExpire)
+                            // TODO Test
+                            val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire, device)
                             // Refresh device expiration, so active devices never expire
                             cache.expire("device:$publicKeyFingerprint", deviceExpire)
                             // Delete challenge only after all validations pass, so the client can retry if anything

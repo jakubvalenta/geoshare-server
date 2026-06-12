@@ -101,29 +101,6 @@ class KeyAttestationCertFactory(val fakeCalendar: FakeCalendar = FakeCalendar.DE
             extensions = listOfNotNull(BASIC_CONSTRAINTS_EXT, extraExtension),
         )
 
-    private val KEY_DESCRIPTION_EXT =
-        KeyDescription(
-            attestationVersion = 1.toBigInteger(),
-            attestationSecurityLevel = SecurityLevel.TRUSTED_ENVIRONMENT,
-            keyMintVersion = 1.toBigInteger(),
-            keyMintSecurityLevel = SecurityLevel.TRUSTED_ENVIRONMENT,
-            attestationChallenge = ByteString.copyFromUtf8("A random 40-byte challenge for no reason"),
-            uniqueId = ByteString.empty(),
-            softwareEnforced = AuthorizationList(),
-            hardwareEnforced =
-                AuthorizationList(
-                    rootOfTrust =
-                        RootOfTrust(
-                            ByteString.copyFromUtf8("bootKey"),
-                            false,
-                            VerifiedBootState.VERIFIED,
-                            ByteString.copyFromUtf8("bootHash"),
-                        ),
-                    origin = Origin.GENERATED,
-                ),
-        )
-            .asExtension()
-
     internal fun generateLeafCert(
         publicKey: PublicKey = leafKey.public,
         signingKey: PrivateKey = attestationKey.private,
@@ -167,6 +144,52 @@ class KeyAttestationCertFactory(val fakeCalendar: FakeCalendar = FakeCalendar.DE
                 /* critical= */ true,
                 BasicConstraints(/* cA= */ true).encoded,
             )
+
+        val KEY_DESCRIPTION_EXT =
+            KeyDescription(
+                attestationVersion = 1.toBigInteger(),
+                attestationSecurityLevel = SecurityLevel.TRUSTED_ENVIRONMENT,
+                keyMintVersion = 1.toBigInteger(),
+                keyMintSecurityLevel = SecurityLevel.TRUSTED_ENVIRONMENT,
+                attestationChallenge = ByteString.copyFromUtf8("A random 40-byte challenge for no reason"),
+                uniqueId = ByteString.empty(),
+                softwareEnforced = AuthorizationList(),
+                hardwareEnforced =
+                    AuthorizationList(
+                        rootOfTrust =
+                            RootOfTrust(
+                                ByteString.copyFromUtf8("bootKey"),
+                                false,
+                                VerifiedBootState.VERIFIED,
+                                ByteString.copyFromUtf8("bootHash"),
+                            ),
+                        origin = Origin.GENERATED,
+                    ),
+            )
+                .asExtension()
+
+        val SELF_SIGNED_KEY_DESCRIPTION_EXT =
+            KeyDescription(
+                attestationVersion = 1.toBigInteger(),
+                attestationSecurityLevel = SecurityLevel.TRUSTED_ENVIRONMENT,
+                keyMintVersion = 1.toBigInteger(),
+                keyMintSecurityLevel = SecurityLevel.TRUSTED_ENVIRONMENT,
+                attestationChallenge = ByteString.copyFromUtf8("A random 40-byte challenge for no reason"),
+                uniqueId = ByteString.empty(),
+                softwareEnforced = AuthorizationList(),
+                hardwareEnforced =
+                    AuthorizationList(
+                        rootOfTrust =
+                            RootOfTrust(
+                                ByteString.copyFromUtf8("bootKey"),
+                                false,
+                                VerifiedBootState.SELF_SIGNED,
+                                ByteString.copyFromUtf8("bootHash"),
+                            ),
+                        origin = Origin.GENERATED,
+                    ),
+            )
+                .asExtension()
     }
 }
 

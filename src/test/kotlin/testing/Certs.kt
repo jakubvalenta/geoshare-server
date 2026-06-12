@@ -1,5 +1,7 @@
 package net.geoshare_app.testing
 
+import net.geoshare_app.testing.KeyAttestationCertFactory.Companion.SELF_SIGNED_KEY_DESCRIPTION_EXT
+
 private val certFactory = KeyAttestationCertFactory()
 
 /**
@@ -30,6 +32,19 @@ object CertLists {
     val validFactoryProvisioned by lazy {
         listOf(
             certFactory.generateLeafCert(),
+            Certs.factoryAttestation,
+            Certs.factoryIntermediate,
+            certFactory.root,
+        )
+    }
+
+    /**
+     * A chain created on a device with locked bootloader and a custom AVB key.
+     */
+    @JvmStatic
+    val selfSigned by lazy {
+        listOf(
+            certFactory.generateLeafCert(extension = SELF_SIGNED_KEY_DESCRIPTION_EXT),
             Certs.factoryAttestation,
             Certs.factoryIntermediate,
             certFactory.root,
