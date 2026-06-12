@@ -4,6 +4,7 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.accept
 import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -38,7 +39,7 @@ class ApplicationTest {
     }
 
     @Test
-    fun `rate limited route - when called too fast from an unknown ip, it returns 429`() = testApplication {
+    fun `rate limited route based on ip - when called too fast from an unknown ip, it returns 429`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -50,16 +51,15 @@ class ApplicationTest {
         }
 
         // The first few requests pass
-        repeat(5) {
-            val res = client.get("/v1/google-maps/geocode/address/$query") {
-                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+        repeat(10) {
+            val res = client.post("/v1/auth/challenge") {
                 // X-Real-Ip header is not set
                 accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.OK, res.status)
         }
         // The next request is rate-limited
-        val res = client.get("/v1/google-maps/geocode/address/$query") {
+        val res = client.post("/v1/auth/challenge") {
             headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             // X-Real-Ip header is not set
             accept(ContentType.Application.Json)
@@ -68,7 +68,7 @@ class ApplicationTest {
     }
 
     @Test
-    fun `rate limited route - when called too fast from ipv4 addresses with the same prefix, it returns 429`() = testApplication {
+    fun `rate limited route based on ip - when called too fast from ipv4 addresses with the same prefix, it returns 429`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -80,16 +80,15 @@ class ApplicationTest {
         }
 
         // The first few requests pass
-        repeat(5) {
-            val res = client.get("/v1/google-maps/geocode/address/$query") {
-                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+        repeat(10) {
+            val res = client.post("/v1/auth/challenge") {
                 headers["X-Real-Ip"] = "203.0.113.1"
                 accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.OK, res.status)
         }
         // The next request is rate-limited
-        val res = client.get("/v1/google-maps/geocode/address/$query") {
+        val res = client.post("/v1/auth/challenge") {
             headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             headers["X-Real-Ip"] = "203.0.113.2" // Different IPv4 address with the same /24 prefix
             accept(ContentType.Application.Json)
@@ -98,7 +97,7 @@ class ApplicationTest {
     }
 
     @Test
-    fun `rate limited route - when called too fast from ipv6 addresses with the same prefix, it returns 429`() = testApplication {
+    fun `rate limited route based on ip - when called too fast from ipv6 addresses with the same prefix, it returns 429`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -110,16 +109,15 @@ class ApplicationTest {
         }
 
         // The first few requests pass
-        repeat(5) {
-            val res = client.get("/v1/google-maps/geocode/address/$query") {
-                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+        repeat(10) {
+            val res = client.post("/v1/auth/challenge") {
                 headers["X-Real-Ip"] = "2001:db8:dead:beef::1"
                 accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.OK, res.status)
         }
         // The next request is rate-limited
-        val res = client.get("/v1/google-maps/geocode/address/$query") {
+        val res = client.post("/v1/auth/challenge") {
             headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             headers["X-Real-Ip"] = "2001:db8:dead:beef::2" // Different IPv6 address with the same /64 prefix
             accept(ContentType.Application.Json)
@@ -128,7 +126,7 @@ class ApplicationTest {
     }
 
     @Test
-    fun `rate limited route - when called too fast from ipv4 addresses with different prefix, it returns 200`() = testApplication {
+    fun `rate limited route based on ip - when called too fast from ipv4 addresses with different prefix, it returns 200`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -140,16 +138,15 @@ class ApplicationTest {
         }
 
         // The first few requests pass
-        repeat(5) {
-            val res = client.get("/v1/google-maps/geocode/address/$query") {
-                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+        repeat(10) {
+            val res = client.post("/v1/auth/challenge") {
                 headers["X-Real-Ip"] = "192.0.2.1"
                 accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.OK, res.status)
         }
         // The next request passes too
-        val res = client.get("/v1/google-maps/geocode/address/$query") {
+        val res = client.post("/v1/auth/challenge") {
             headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
             headers["X-Real-Ip"] = "192.0.3.1" // Different IPv4 address with the same /16 prefix
             accept(ContentType.Application.Json)
@@ -158,7 +155,36 @@ class ApplicationTest {
     }
 
     @Test
-    fun `rate limited route - when called too fast from ipv6 addresses with different prefix, it returns 200`() = testApplication {
+    fun `rate limited route based on ip - when called too fast from ipv6 addresses with different prefix, it returns 200`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.conf")
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+            googleMapsModule(engine = this@ApplicationTest.engine)
+        }
+
+        // The first few requests pass
+        repeat(10) {
+            val res = client.post("/v1/auth/challenge") {
+                headers["X-Real-Ip"] = "2001:db8:dead:beef::1"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.OK, res.status)
+        }
+        // The next request passes too
+        val res = client.post("/v1/auth/challenge") {
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+            headers["X-Real-Ip"] = "2001:db8:dead::1" // Different IPv6 address with the same /48 prefix
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.OK, res.status)
+    }
+
+    @Test
+    fun `rate limited route based on jwt subject - when called too fast with the same token, it returns 429`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.conf")
         }
@@ -173,15 +199,45 @@ class ApplicationTest {
         repeat(5) {
             val res = client.get("/v1/google-maps/geocode/address/$query") {
                 headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-                headers["X-Real-Ip"] = "2001:db8:dead:beef::1"
+                headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.OK, res.status)
+        }
+        // The next request is rate-limited
+        val res = client.get("/v1/google-maps/geocode/address/$query") {
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}" // Same token
+            headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.TooManyRequests, res.status)
+    }
+
+    @Test
+    fun `rate limited route based on jwt subject - when called too fast with different tokens, it returns 200`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.conf")
+        }
+        application {
+            val cache = FakeCache()
+            rootModule()
+            authenticationModule(cache, TestCertificateVerification(cache))
+            googleMapsModule(engine = this@ApplicationTest.engine)
+        }
+
+        // The first few requests pass
+        repeat(5) {
+            val res = client.get("/v1/google-maps/geocode/address/$query") {
+                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+                headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
                 accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.OK, res.status)
         }
         // The next request passes too
         val res = client.get("/v1/google-maps/geocode/address/$query") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            headers["X-Real-Ip"] = "2001:db8:dead::1" // Different IPv6 address with the same /48 prefix
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.unverifiedSubject}" // Different token
+            headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.OK, res.status)

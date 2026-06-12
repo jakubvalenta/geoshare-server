@@ -17,10 +17,10 @@ object Tokens {
             .sign(Algorithm.HMAC256(JWT_SECRET))
     }
 
-    val shared: String by lazy {
+    val unverifiedSubject: String by lazy {
         JWT.create()
             .withSubject("shared")
-            .withExpiresAt(Date(System.currentTimeMillis() - 1.minutes.inWholeMilliseconds))
+            .withExpiresAt(Date(System.currentTimeMillis() + 1.minutes.inWholeMilliseconds))
             .sign(Algorithm.HMAC256(JWT_SECRET))
     }
 

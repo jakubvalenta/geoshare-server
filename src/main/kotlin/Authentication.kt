@@ -142,7 +142,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                                     ) {
                                         publicKeyFingerprint
                                     } else {
-                                        "shared"
+                                        "unverified"
                                     }
                                     val token = createToken(subject, jwtSecret, jwtExpire)
                                     // Register device before deleting the challenge, so the client can retry if
