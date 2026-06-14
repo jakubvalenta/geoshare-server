@@ -17,11 +17,14 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.authentication
+import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.resources.Resources
 import io.ktor.server.resources.get
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondRedirect
 import io.ktor.server.routing.head
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
@@ -79,9 +82,29 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create()) {
 
     install(Resources)
     routing {
-        authenticate("api") {
-            route("/v1/google-maps") {
-                route("/verified") {
+        route("/v1/google-maps") {
+            authenticate("dispatch") {
+                rateLimit {
+                    get<AddressResource> { address ->
+                        // TODO Test Google Maps Geocode Address dispatch
+                        when (call.authentication.principal<JWTPrincipal>()?.toDevice()) {
+                            Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/address/${address.query}")
+                            Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/address/${address.query}")
+                            null -> call.respond(HttpStatusCode.Unauthorized)
+                        }
+                    }
+                    get<PlaceResource> { place ->
+                        // TODO Test Google Maps Geocode Place dispatch
+                        when (call.authentication.principal<JWTPrincipal>()?.toDevice()) {
+                            Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/places/${place.id}")
+                            Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/places/${place.id}")
+                            null -> call.respond(HttpStatusCode.Unauthorized)
+                        }
+                    }
+                }
+            }
+            route("/verified") {
+                authenticate("verified") {
                     rateLimit(RateLimitName("verified")) {
                         get<AddressResource> { address ->
                             call.respond(callGeocodeAddressApi(engine, apiKey, dryRun, address.query))
@@ -91,7 +114,9 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create()) {
                         }
                     }
                 }
-                route("/unverified") {
+            }
+            route("/unverified") {
+                authenticate("unverified") {
                     rateLimit(RateLimitName("unverified")) {
                         get<AddressResource> { address ->
                             call.respond(callGeocodeAddressApi(engine, apiKey, dryRun, address.query))

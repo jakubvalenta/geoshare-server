@@ -85,10 +85,32 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
     }
 
     install(Authentication) {
-        jwt("api") {
+        jwt("dispatch") {
             verifier(JWT.require(Algorithm.HMAC256(jwtSecret)).build())
             validate { credential ->
-                credential.payload.takeIf { !it.subject.isNullOrEmpty() }?.let { payload ->
+                credential.payload.takeIf {
+                    !it.subject.isNullOrEmpty()
+                }?.let { payload ->
+                    JWTPrincipal(payload)
+                }
+            }
+        }
+        jwt("unverified") {
+            verifier(JWT.require(Algorithm.HMAC256(jwtSecret)).build())
+            validate { credential ->
+                credential.payload.takeIf {
+                    !it.subject.isNullOrEmpty() && it.getClaim("device").asString().toDevice() == Device.UNVERIFIED
+                }?.let { payload ->
+                    JWTPrincipal(payload)
+                }
+            }
+        }
+        jwt("verified") {
+            verifier(JWT.require(Algorithm.HMAC256(jwtSecret)).build())
+            validate { credential ->
+                credential.payload.takeIf {
+                    !it.subject.isNullOrEmpty() && it.getClaim("device").asString().toDevice() == Device.VERIFIED
+                }?.let { payload ->
                     JWTPrincipal(payload)
                 }
             }
@@ -240,6 +262,9 @@ fun String.toDevice(): Device? =
     } catch (_: IllegalArgumentException) {
         null
     }
+
+fun JWTPrincipal.toDevice(): Device? =
+    payload.getClaim("device")?.asString()?.toDevice()
 
 private fun createToken(publicKeyFingerprint: String, secret: ByteArray, expire: Duration, device: Device): String =
     JWT.create()
