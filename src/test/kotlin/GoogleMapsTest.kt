@@ -15,6 +15,7 @@ import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.config.mergeWith
 import io.ktor.server.testing.testApplication
+import net.geoshare_app.lib.StatusFailed
 import net.geoshare_app.lib.sha256Hex
 import net.geoshare_app.testing.FakeCache
 import net.geoshare_app.testing.TestCertificateVerification
@@ -127,9 +128,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/address/$query")
@@ -143,9 +145,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
@@ -166,9 +169,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
@@ -186,9 +190,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository = statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
@@ -217,9 +222,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/address/empty-results") {
@@ -241,9 +247,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/address/empty-object") {
@@ -260,9 +267,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/address/invalid") {
@@ -279,9 +287,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/address/bad-request") {
@@ -298,9 +307,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/address/not-found") {
@@ -317,9 +327,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/address/too-many-requests") {
@@ -337,9 +348,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/address/unauthorized") {
@@ -357,9 +369,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/address/exception") {
@@ -377,9 +390,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         // The first few requests pass
@@ -407,9 +421,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/places/$placeId")
@@ -423,9 +438,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/places/$placeId") {
@@ -446,9 +462,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/places/$placeId") {
@@ -466,9 +483,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/places/$placeId") {
@@ -494,9 +512,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/places/empty-object") {
@@ -513,9 +532,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/places/invalid") {
@@ -532,9 +552,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/places/bad-request") {
@@ -551,9 +572,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/places/not-found") {
@@ -570,9 +592,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/places/too-many-requests") {
@@ -590,9 +613,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/places/unauthorized") {
@@ -610,9 +634,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.get("/v1/google-maps/verified/geocode/places/exception") {
@@ -630,9 +655,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         // The first few requests pass
@@ -666,10 +692,11 @@ class GoogleMapsTest {
             }
             application {
                 val cache = FakeCache()
-                rootModule()
-                authenticationModule(cache, TestCertificateVerification(cache))
+                val statsRepository = StatsRepository(cache)
+                rootModule(statsRepository)
+                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
                 googleMapsModule(
-                    engine = MockEngine { request ->
+                    MockEngine { request ->
                         when (request.url.toString()) {
                             "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" -> respond(
                                 // language=Json
@@ -687,7 +714,8 @@ class GoogleMapsTest {
 
                             else -> throw NotImplementedError()
                         }
-                    }
+                    },
+                    statsRepository,
                 )
             }
 
@@ -710,10 +738,11 @@ class GoogleMapsTest {
             }
             application {
                 val cache = FakeCache()
-                rootModule()
-                authenticationModule(cache, TestCertificateVerification(cache))
+                val statsRepository = StatsRepository(cache)
+                rootModule(statsRepository)
+                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
                 googleMapsModule(
-                    engine = MockEngine { request ->
+                    MockEngine { request ->
                         when (request.url.toString()) {
                             "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" -> respond(
                                 // language=Json
@@ -731,14 +760,15 @@ class GoogleMapsTest {
 
                             else -> throw NotImplementedError()
                         }
-                    }
+                    },
+                    statsRepository,
                 )
             }
 
             val res = client.head("/v1/status/google-maps/connection") {
                 headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
             }
-            assertEquals(HttpStatusCode.InternalServerError, res.status)
+            assertEquals(StatusFailed, res.status)
             assertEquals("Unexpected location", res.bodyAsText())
         }
 
@@ -755,10 +785,11 @@ class GoogleMapsTest {
             }
             application {
                 val cache = FakeCache()
-                rootModule()
-                authenticationModule(cache, TestCertificateVerification(cache))
+                val statsRepository = StatsRepository(cache)
+                rootModule(statsRepository)
+                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
                 googleMapsModule(
-                    engine = MockEngine { request ->
+                    MockEngine { request ->
                         when (request.url.toString()) {
                             "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" -> respond(
                                 // language=Json
@@ -774,14 +805,15 @@ class GoogleMapsTest {
 
                             else -> throw NotImplementedError()
                         }
-                    }
+                    },
+                    statsRepository,
                 )
             }
 
             val res = client.head("/v1/status/google-maps/connection") {
                 headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
             }
-            assertEquals(HttpStatusCode.InternalServerError, res.status)
+            assertEquals(StatusFailed, res.status)
             assertEquals("Unexpected location", res.bodyAsText())
         }
 
@@ -798,17 +830,19 @@ class GoogleMapsTest {
             }
             application {
                 val cache = FakeCache()
-                rootModule()
-                authenticationModule(cache, TestCertificateVerification(cache))
+                val statsRepository = StatsRepository(cache)
+                rootModule(statsRepository)
+                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
                 googleMapsModule(
-                    engine = MockEngine { request ->
+                    MockEngine { request ->
                         when (request.url.toString()) {
                             "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" ->
                                 respondError(HttpStatusCode.Unauthorized)
 
                             else -> throw NotImplementedError()
                         }
-                    }
+                    },
+                    statsRepository,
                 )
             }
 
@@ -832,17 +866,19 @@ class GoogleMapsTest {
             }
             application {
                 val cache = FakeCache()
-                rootModule()
-                authenticationModule(cache, TestCertificateVerification(cache))
+                val statsRepository = StatsRepository(cache)
+                rootModule(statsRepository)
+                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
                 googleMapsModule(
-                    engine = MockEngine { request ->
+                    MockEngine { request ->
                         when (request.url.toString()) {
                             "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" ->
                                 respondError(HttpStatusCode.NotFound)
 
                             else -> throw NotImplementedError()
                         }
-                    }
+                    },
+                    statsRepository,
                 )
             }
 
@@ -865,10 +901,12 @@ class GoogleMapsTest {
             }
             application {
                 val cache = FakeCache()
-                rootModule()
-                authenticationModule(cache, TestCertificateVerification(cache))
+                val statsRepository = StatsRepository(cache)
+                rootModule(statsRepository)
+                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
                 googleMapsModule(
-                    engine = MockEngine { throw SocketTimeoutException() }
+                    MockEngine { throw SocketTimeoutException() },
+                    statsRepository,
                 )
             }
 
@@ -891,9 +929,10 @@ class GoogleMapsTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@GoogleMapsTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
         val res = client.head("/v1/status/google-maps/connection") {

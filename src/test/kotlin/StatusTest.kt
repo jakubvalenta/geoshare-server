@@ -1,7 +1,6 @@
 package net.geoshare_app
 
 import io.ktor.client.request.head
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.config.ApplicationConfig
@@ -9,6 +8,7 @@ import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.config.mergeWith
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import net.geoshare_app.lib.StatusFailed
 import net.geoshare_app.lib.sha256Hex
 import net.geoshare_app.testing.FakeCache
 import net.geoshare_app.testing.TestCertificateVerification
@@ -30,9 +30,10 @@ class StatusTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            statusModule(cache)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            statusModule(cache, statsRepository)
         }
 
         val res = client.head("/v1/status/cache") {
@@ -58,10 +59,19 @@ class StatusTest {
                 override suspend fun get(key: String) = ""
 
                 @Suppress("EmptyMethod", "unused")
+                override suspend fun hashGet(key: String, field: String) = null
+
+                @Suppress("EmptyMethod", "unused")
                 override suspend fun set(key: String, value: String) {}
 
                 @Suppress("EmptyMethod", "unused")
                 override suspend fun set(key: String, value: String, expire: Duration) {}
+
+                @Suppress("EmptyMethod", "unused")
+                override suspend fun increase(key: String, expire: Duration) {}
+
+                @Suppress("EmptyMethod", "unused")
+                override suspend fun hashIncrease(key: String, field: String, expire: Duration) {}
 
                 @Suppress("EmptyMethod", "unused")
                 override suspend fun delete(key: String) {}
@@ -74,16 +84,16 @@ class StatusTest {
                 @Suppress("EmptyMethod")
                 override fun close() {}
             }
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            statusModule(cache)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            statusModule(cache, statsRepository)
         }
 
         val res = client.head("/v1/status/cache") {
             headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
         }
-        assertEquals(HttpStatusCode.InternalServerError, res.status)
-        assertEquals("Failed", res.bodyAsText())
+        assertEquals(StatusFailed, res.status)
     }
 
     @Test
@@ -98,9 +108,10 @@ class StatusTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            statusModule(cache)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            statusModule(cache, statsRepository)
         }
 
         val res = client.head("/v1/status/cache") {

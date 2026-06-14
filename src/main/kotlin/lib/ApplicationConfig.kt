@@ -18,10 +18,10 @@ fun ApplicationConfig.propertyAsBytes(path: String, filePath: String): ByteArray
         ?: File(property(filePath).getString()).readBytes()
 
 fun ApplicationConfig.propertyAsInt(path: String): Int =
-    property(path).getString().toInt()
+    propertyAsString(path).toInt()
 
 fun ApplicationConfig.propertyAsBoolean(path: String, default: Boolean): Boolean =
     propertyOrNull(path)?.getString()?.toBoolean() ?: default
 
 fun ApplicationConfig.propertyAsDuration(path: String, unit: DurationUnit = DurationUnit.SECONDS): Duration =
-    property(path).getString().toInt().toDuration(unit)
+    propertyAsString(path).toInt().toDuration(unit)

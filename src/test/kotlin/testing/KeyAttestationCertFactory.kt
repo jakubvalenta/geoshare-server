@@ -33,7 +33,7 @@ import java.util.Date
 /**
  * @see [com.android.keyattestation.verifier.testing.KeyAttestationCertFactory]
  */
-@Suppress("InconsistentCommentForJavaParameter", "PrivatePropertyName", "SpellCheckingInspection")
+@Suppress("InconsistentCommentForJavaParameter", "SpellCheckingInspection")
 class KeyAttestationCertFactory(val fakeCalendar: FakeCalendar = FakeCalendar.DEFAULT) {
     private val ecKeyPairGenerator =
         KeyPairGenerator.getInstance("EC").apply {

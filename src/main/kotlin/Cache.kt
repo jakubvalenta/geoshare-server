@@ -6,12 +6,16 @@ import io.lettuce.core.RedisClient
 import io.lettuce.core.RedisException
 import io.lettuce.core.SetArgs
 import io.lettuce.core.api.coroutines
+import io.lettuce.core.api.coroutines.multi
 import kotlin.time.Duration
 
 interface Cache : AutoCloseable {
     suspend fun get(key: String): String?
+    suspend fun hashGet(key: String, field: String): String?
     suspend fun set(key: String, value: String)
     suspend fun set(key: String, value: String, expire: Duration)
+    suspend fun increase(key: String, expire: Duration)
+    suspend fun hashIncrease(key: String, field: String, expire: Duration)
     suspend fun delete(key: String)
     suspend fun expire(key: String, expire: Duration)
     suspend fun ping(): Boolean
@@ -26,12 +30,29 @@ class CacheImpl(connectionUri: String) : Cache {
     override suspend fun get(key: String) =
         commands.get(key)
 
+    override suspend fun hashGet(key: String, field: String) =
+        commands.hget(key, field)
+
     override suspend fun set(key: String, value: String) {
         commands.set(key, value)
     }
 
     override suspend fun set(key: String, value: String, expire: Duration) {
         commands.set(key, value, SetArgs.Builder.ex(expire.inWholeSeconds))
+    }
+
+    override suspend fun increase(key: String, expire: Duration) {
+        commands.multi {
+            incr(key)
+            expire(key, expire.inWholeSeconds)
+        }
+    }
+
+    override suspend fun hashIncrease(key: String, field: String, expire: Duration) {
+        commands.multi {
+            hincrby(key, field, 1)
+            expire(key, expire.inWholeSeconds)
+        }
     }
 
     override suspend fun delete(key: String) {

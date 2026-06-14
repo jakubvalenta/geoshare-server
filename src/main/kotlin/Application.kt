@@ -17,10 +17,11 @@ import net.geoshare_app.lib.UpstreamUnknownException
 import net.geoshare_app.lib.ipToRateLimitBlock
 import net.geoshare_app.lib.propertyAsDuration
 import net.geoshare_app.lib.propertyAsInt
+import net.geoshare_app.lib.stats
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-fun Application.rootModule() {
+fun Application.rootModule(statsRepository: StatsRepository) {
     val config = environment.config
 
     install(ContentNegotiation) {
@@ -77,7 +78,13 @@ fun Application.rootModule() {
             call.respondText(text = "Upstream request failed", status = HttpStatusCode.InternalServerError)
         }
         status(HttpStatusCode.TooManyRequests) { call, status ->
-            // TODO Collect rate limiting stats
+            // TODO Test rate limit stats
+            with(call.stats) {
+                statsRepository.hashIncrease("stats:rate-limit:$hour:by-endpoint", endpoint)
+                statsRepository.hashIncrease("stats:rate-limit:$hour:by-ip", ip)
+                statsRepository.hashIncrease("stats:rate-limit:$hour:by-subject", subject)
+                statsRepository.increase("stats:rate-limit:$hour:total")
+            }
             val retryAfter = call.response.headers["Retry-After"]
             call.respondText(text = "Too many requests. Wait for $retryAfter seconds", status = status)
         }

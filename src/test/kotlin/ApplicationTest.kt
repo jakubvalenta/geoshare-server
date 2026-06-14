@@ -45,9 +45,10 @@ class ApplicationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@ApplicationTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@ApplicationTest.engine, statsRepository)
         }
 
         // The first few requests pass
@@ -74,9 +75,10 @@ class ApplicationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@ApplicationTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@ApplicationTest.engine, statsRepository)
         }
 
         // The first few requests pass
@@ -103,9 +105,10 @@ class ApplicationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@ApplicationTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@ApplicationTest.engine, statsRepository)
         }
 
         // The first few requests pass
@@ -132,9 +135,10 @@ class ApplicationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@ApplicationTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@ApplicationTest.engine, statsRepository)
         }
 
         // The first few requests pass
@@ -161,9 +165,10 @@ class ApplicationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@ApplicationTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@ApplicationTest.engine, statsRepository)
         }
 
         // The first few requests pass
@@ -190,9 +195,10 @@ class ApplicationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@ApplicationTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@ApplicationTest.engine, statsRepository)
         }
 
         // The first few requests pass
@@ -220,9 +226,10 @@ class ApplicationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@ApplicationTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@ApplicationTest.engine, statsRepository)
         }
 
         // The first few requests pass
@@ -250,9 +257,10 @@ class ApplicationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
-            googleMapsModule(engine = this@ApplicationTest.engine)
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@ApplicationTest.engine, statsRepository)
         }
 
         // The first few requests pass

@@ -34,8 +34,9 @@ class AuthenticationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
 
         val res = jsonHttpClient.post("/v1/auth/challenge")
@@ -50,8 +51,9 @@ class AuthenticationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
 
         // Register
@@ -79,8 +81,9 @@ class AuthenticationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
 
         // Registration challenge
@@ -128,8 +131,9 @@ class AuthenticationTest {
             }
             application {
                 val cache = FakeCache(testScheduler.timeSource)
-                rootModule()
-                authenticationModule(cache, TestCertificateVerification(cache))
+                val statsRepository = StatsRepository(cache)
+                rootModule(statsRepository)
+                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             }
 
             // Registration challenge
@@ -163,8 +167,9 @@ class AuthenticationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
 
         // Registration challenge
@@ -195,8 +200,9 @@ class AuthenticationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
 
         // Registration challenge
@@ -228,8 +234,9 @@ class AuthenticationTest {
             }
             application {
                 val cache = FakeCache(testScheduler.timeSource)
-                rootModule()
-                authenticationModule(cache, TestCertificateVerification(cache))
+                val statsRepository = StatsRepository(cache)
+                rootModule(statsRepository)
+                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             }
 
             // Registration challenge
@@ -261,8 +268,9 @@ class AuthenticationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
 
         // Registration challenge
@@ -295,8 +303,9 @@ class AuthenticationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
 
         // Registration challenge
@@ -329,8 +338,9 @@ class AuthenticationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
 
         // Login
@@ -358,8 +368,9 @@ class AuthenticationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
 
         // Registration challenge
@@ -425,8 +436,9 @@ class AuthenticationTest {
             }
             application {
                 val cache = FakeCache(testScheduler.timeSource)
-                rootModule()
-                authenticationModule(cache, TestCertificateVerification(cache))
+                val statsRepository = StatsRepository(cache)
+                rootModule(statsRepository)
+                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             }
 
             // Registration challenge
@@ -478,8 +490,9 @@ class AuthenticationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
 
         // Login challenge
@@ -511,8 +524,9 @@ class AuthenticationTest {
             }
             application {
                 val cache = FakeCache(testScheduler.timeSource)
-                rootModule()
-                authenticationModule(cache, TestCertificateVerification(cache))
+                val statsRepository = StatsRepository(cache)
+                rootModule(statsRepository)
+                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             }
 
             // Registration challenge
@@ -564,8 +578,9 @@ class AuthenticationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
 
         // Registration challenge
@@ -614,8 +629,9 @@ class AuthenticationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
 
         // Registration challenge
@@ -666,8 +682,9 @@ class AuthenticationTest {
         }
         application {
             val cache = FakeCache()
-            rootModule()
-            authenticationModule(cache, TestCertificateVerification(cache))
+            val statsRepository = StatsRepository(cache)
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
 
         // Registration challenge
@@ -720,8 +737,9 @@ class AuthenticationTest {
                 }
                 application {
                     val cache = FakeCache(testScheduler.timeSource)
-                    rootModule()
-                    authenticationModule(cache, TestCertificateVerification(cache))
+                    val statsRepository = StatsRepository(cache)
+                    rootModule(statsRepository)
+                    authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
                 }
 
                 // Registration challenge

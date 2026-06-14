@@ -9,6 +9,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.bearer
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
@@ -18,11 +19,13 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.head
 import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import net.geoshare_app.lib.StatusFailed
 import net.geoshare_app.lib.base64Decode
 import net.geoshare_app.lib.base64Encode
 import net.geoshare_app.lib.fingerprint
@@ -32,6 +35,7 @@ import net.geoshare_app.lib.propertyAsString
 import net.geoshare_app.lib.readCertificateFromDEROrPEM
 import net.geoshare_app.lib.readPublicKeyFromDER
 import net.geoshare_app.lib.sha256Hex
+import net.geoshare_app.lib.stats
 import net.geoshare_app.lib.verifySignature
 import java.security.SecureRandom
 import java.util.Date
@@ -56,7 +60,7 @@ data class TokenResponse(val token: String) : AuthenticationResponse
 
 enum class Device { VERIFIED, UNVERIFIED }
 
-fun Application.authenticationModule(cache: Cache, certificateVerification: CertificateVerification) {
+fun Application.authenticationModule(cache: Cache, certificateVerification: CertificateVerification, statsRepository: StatsRepository) {
     val config = environment.config
 
     val challengeExpire = config.propertyAsDuration("auth.challengeExpireSec")
@@ -88,36 +92,66 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
         jwt("dispatch") {
             verifier(JWT.require(Algorithm.HMAC256(jwtSecret)).build())
             validate { credential ->
-                credential.payload.takeIf {
-                    !it.subject.isNullOrEmpty()
-                }?.let { payload ->
-                    JWTPrincipal(payload)
+                if (!credential.payload.subject.isNullOrEmpty()) {
+                    JWTPrincipal(credential.payload)
+                } else {
+                    with(this.stats) {
+                        // TODO Test
+                        statsRepository.hashIncrease("stats:auth:unauthorized:$hour:by-endpoint", endpoint)
+                        statsRepository.increase("stats:auth:unauthorized:$hour:total")
+                    }
+                    null
                 }
             }
         }
         jwt("unverified") {
             verifier(JWT.require(Algorithm.HMAC256(jwtSecret)).build())
             validate { credential ->
-                credential.payload.takeIf {
-                    !it.subject.isNullOrEmpty() && it.getClaim("device").asString().toDevice() == Device.UNVERIFIED
-                }?.let { payload ->
-                    JWTPrincipal(payload)
+                if (
+                    !credential.payload.subject.isNullOrEmpty() &&
+                    credential.payload.getClaim("device").asString().toDevice() == Device.UNVERIFIED
+                ) {
+                    JWTPrincipal(credential.payload)
+                } else {
+                    with(this.stats) {
+                        // TODO Test
+                        statsRepository.hashIncrease("stats:auth:unauthorized:$hour:by-endpoint", endpoint)
+                        statsRepository.increase("stats:auth:unauthorized:$hour:total")
+                    }
+                    null
                 }
             }
         }
         jwt("verified") {
             verifier(JWT.require(Algorithm.HMAC256(jwtSecret)).build())
             validate { credential ->
-                credential.payload.takeIf {
-                    !it.subject.isNullOrEmpty() && it.getClaim("device").asString().toDevice() == Device.VERIFIED
-                }?.let { payload ->
-                    JWTPrincipal(payload)
+                if (
+                    !credential.payload.subject.isNullOrEmpty() &&
+                    credential.payload.getClaim("device").asString().toDevice() == Device.VERIFIED
+                ) {
+                    JWTPrincipal(credential.payload)
+                } else {
+                    with(this.stats) {
+                        // TODO Test
+                        statsRepository.hashIncrease("stats:auth:unauthorized:$hour:by-endpoint", endpoint)
+                        statsRepository.increase("stats:auth:unauthorized:$hour:total")
+                    }
+                    null
                 }
             }
         }
         bearer("status") {
             authenticate { tokenCredential ->
-                if (tokenCredential.token.toByteArray().sha256Hex() == statusApiTokenHash) true else null
+                if (tokenCredential.token.toByteArray().sha256Hex() == statusApiTokenHash) {
+                    true
+                } else {
+                    with(this.stats) {
+                        // TODO Test
+                        statsRepository.hashIncrease("stats:auth:unauthorized:$hour:by-endpoint", endpoint)
+                        statsRepository.increase("stats:auth:unauthorized:$hour:total")
+                    }
+                    null
+                }
             }
         }
     }
@@ -128,6 +162,10 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 val challengeCacheKey = challenge.sha256Hex()
                 cache.set("challenge:$challengeCacheKey", "", challengeExpire)
                 val res = ChallengeResponse(challenge.base64Encode())
+                with(call.stats) {
+                    // TODO Test
+                    statsRepository.increase("stats:auth:challenge:success:$hour:total")
+                }
                 call.respond(res)
             }
         }
@@ -195,8 +233,20 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 }
 
                 when (res) {
-                    is ErrorResponse -> call.respond(HttpStatusCode.Unauthorized, res.message)
-                    is TokenResponse -> call.respond(res)
+                    is ErrorResponse -> {
+                        with(call.stats) {
+                            // TODO Test
+                            statsRepository.increase("stats:auth:register:error:$hour:total")
+                        }
+                        call.respond(HttpStatusCode.Unauthorized, res.message)
+                    }
+                    is TokenResponse -> {
+                        with(call.stats) {
+                            // TODO Test
+                            statsRepository.increase("stats:auth:register:success:$hour:total")
+                        }
+                        call.respond(res)
+                    }
                 }
             }
         }
@@ -235,22 +285,95 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 }
 
                 when (res) {
-                    is ErrorResponse -> call.respond(HttpStatusCode.Unauthorized, res.message)
-                    is TokenResponse -> call.respond(res)
+                    is ErrorResponse -> {
+                        with(call.stats) {
+                            // TODO Test
+                            statsRepository.increase("stats:auth:login:error:$hour:total")
+                        }
+                        call.respond(HttpStatusCode.Unauthorized, res.message)
+                    }
+
+                    is TokenResponse -> {
+                        with(call.stats) {
+                            // TODO Test
+                            statsRepository.increase("stats:auth:login:success:$hour:total")
+                        }
+                        call.respond(res)
+                    }
                 }
             }
+        }
 
-            head("/v1/status/auth/login/successful/hour") {
-                // TODO Report number of successful logins
-            }
-            head("/v1/status/auth/login/unsuccessful/hour") {
-                // TODO Report number of unsuccessful logins
-            }
-            head("/v1/status/auth/register/successful/hour") {
-                // TODO Report number of successful registrations
-            }
-            head("/v1/status/auth/register/unsuccessful/hour") {
-                // TODO Report number of unsuccessful registrations
+        route("/v1/status/auth") {
+            authenticate("status") {
+                rateLimit {
+                    head("/challenge/success/hour") {
+                        // TODO Test
+                        with(call.stats) {
+                            val num = statsRepository.get("stats:auth:challenge:success:$hour:total")
+                            if (num > 100) {
+                                call.respond(StatusFailed, num)
+                            } else {
+                                call.respond(num)
+                            }
+                        }
+                    }
+                    head("/login/success/hour") {
+                        // TODO Test
+                        with(call.stats) {
+                            val num = statsRepository.get("stats:auth:login:success:$hour:total")
+                            if (num > 100) {
+                                call.respond(StatusFailed, num)
+                            } else {
+                                call.respond(num)
+                            }
+                        }
+                    }
+                    head("/login/error/hour") {
+                        // TODO Test
+                        with(call.stats) {
+                            val num = statsRepository.get("stats:auth:login:error:$hour:total")
+                            if (num > 10) {
+                                call.respond(StatusFailed, num)
+                            } else {
+                                call.respond(num)
+                            }
+                        }
+                    }
+                    head("/register/success/hour") {
+                        // TODO Test
+                        with(call.stats) {
+                            val num = statsRepository.get("stats:auth:register:success:$hour:total")
+                            if (num > 100) {
+                                call.respond(StatusFailed, num)
+                            } else {
+                                call.respond(num)
+                            }
+                        }
+                    }
+                    head("/register/error/hour") {
+                        // TODO Test
+                        with(call.stats) {
+                            val num = statsRepository.get("stats:auth:register:error:$hour:total")
+                            if (num > 10) {
+                                call.respond(StatusFailed, num)
+                            } else {
+                                call.respond(num)
+                            }
+                        }
+                    }
+                    head("/unauthorized/hour") {
+                        // TODO Test
+                        with(call.stats) {
+                            val num = statsRepository.get("stats:auth:unauthorized:$hour:total")
+                            if (num > 100) {
+                                call.respond(StatusFailed, num)
+                            } else {
+                                call.respond(num)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
