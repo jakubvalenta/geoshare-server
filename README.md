@@ -72,6 +72,8 @@ JWT_SECRET_FILE="secrets/jwt-secret" \
 RATE_LIMIT_DEFAULT=200 \
 RATE_LIMIT_LOGIN=200 \
 RATE_LIMIT_REGISTER=200 \
+RATE_LIMIT_UNVERIFIED=200 \
+RATE_LIMIT_VERIFIED=200 \
 STATUS_API_TOKEN_HASH_FILE="secrets/status-api-token-hash" \
 ./gradlew run
 ```
@@ -79,8 +81,8 @@ STATUS_API_TOKEN_HASH_FILE="secrets/status-api-token-hash" \
 Finally, you can check the status of the running application:
 
 ```shell
-curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status"
-curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/google-maps/status"
+curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/cache"
+curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/google-maps/connection"
 ```
 
 ### Deployment

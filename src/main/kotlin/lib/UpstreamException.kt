@@ -1,4 +1,4 @@
-package net.geoshare_app
+package net.geoshare_app.lib
 
 sealed class UpstreamException(cause: Throwable) : Exception(cause)
 

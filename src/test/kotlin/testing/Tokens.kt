@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.DecodedJWT
 import net.geoshare_app.Device
-import net.geoshare_app.fingerprint
+import net.geoshare_app.lib.fingerprint
 import java.util.Date
 import kotlin.time.Duration.Companion.minutes
 
@@ -14,6 +14,14 @@ object Tokens {
     val valid: String by lazy {
         JWT.create()
             .withSubject(Certs.leafKey.public.fingerprint())
+            .withClaim("device", Device.VERIFIED.name)
+            .withExpiresAt(Date(System.currentTimeMillis() + 1.minutes.inWholeMilliseconds))
+            .sign(Algorithm.HMAC256(JWT_SECRET))
+    }
+
+    val valid2: String by lazy {
+        JWT.create()
+            .withSubject("2")
             .withClaim("device", Device.VERIFIED.name)
             .withExpiresAt(Date(System.currentTimeMillis() + 1.minutes.inWholeMilliseconds))
             .sign(Algorithm.HMAC256(JWT_SECRET))

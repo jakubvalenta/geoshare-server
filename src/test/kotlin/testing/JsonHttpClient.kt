@@ -5,7 +5,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 
-val ApplicationTestBuilder.jsonClient: HttpClient
+val ApplicationTestBuilder.jsonHttpClient: HttpClient
     get() = createClient {
         install(ContentNegotiation) {
             json()

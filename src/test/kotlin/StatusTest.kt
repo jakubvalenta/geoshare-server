@@ -9,6 +9,7 @@ import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.config.mergeWith
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import net.geoshare_app.lib.sha256Hex
 import net.geoshare_app.testing.FakeCache
 import net.geoshare_app.testing.TestCertificateVerification
 import kotlin.test.Test
@@ -23,7 +24,7 @@ class StatusTest {
         environment {
             config = ApplicationConfig("application-test.conf").mergeWith(
                 MapApplicationConfig(
-                    "googleMaps.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
                 )
             )
         }
@@ -34,7 +35,7 @@ class StatusTest {
             statusModule(cache)
         }
 
-        val res = client.head("/v1/status") {
+        val res = client.head("/v1/status/cache") {
             headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
         }
         assertEquals(HttpStatusCode.OK, res.status)
@@ -46,7 +47,7 @@ class StatusTest {
         environment {
             config = ApplicationConfig("application-test.conf").mergeWith(
                 MapApplicationConfig(
-                    "googleMaps.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
                 )
             )
         }
@@ -78,7 +79,7 @@ class StatusTest {
             statusModule(cache)
         }
 
-        val res = client.head("/v1/status") {
+        val res = client.head("/v1/status/cache") {
             headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
         }
         assertEquals(HttpStatusCode.InternalServerError, res.status)
@@ -91,7 +92,7 @@ class StatusTest {
         environment {
             config = ApplicationConfig("application-test.conf").mergeWith(
                 MapApplicationConfig(
-                    "googleMaps.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
                 )
             )
         }
@@ -102,7 +103,7 @@ class StatusTest {
             statusModule(cache)
         }
 
-        val res = client.head("/v1/status") {
+        val res = client.head("/v1/status/cache") {
             headers[HttpHeaders.Authorization] = "Bearer spam"
         }
         assertEquals(HttpStatusCode.Unauthorized, res.status)

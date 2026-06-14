@@ -17,15 +17,23 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.authenticate
+import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.resources.Resources
 import io.ktor.server.resources.get
-import io.ktor.server.resources.head
 import io.ktor.server.response.respond
+import io.ktor.server.routing.head
+import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.io.File
+import net.geoshare_app.lib.UpstreamNotFoundException
+import net.geoshare_app.lib.UpstreamUnauthorizedException
+import net.geoshare_app.lib.UpstreamUnknownException
+import net.geoshare_app.lib.equalsDelta
+import net.geoshare_app.lib.propertyAsBoolean
+import net.geoshare_app.lib.propertyAsString
+import net.geoshare_app.lib.toScale
 import kotlin.random.Random
 
 @Serializable
@@ -58,44 +66,65 @@ data class GoogleMapsResult(val location: GoogleMapsLocation)
 @Serializable
 data class GoogleMapsResults(val results: List<GoogleMapsResult>)
 
-@Resource("/v1/google-maps/geocode/address/{query}")
+@Resource("/geocode/address/{query}")
 private class AddressResource(val query: String)
 
-@Resource("/v1/google-maps/geocode/places/{id}")
+@Resource("/geocode/places/{id}")
 private class PlaceResource(val id: String)
 
-@Resource("/v1/google-maps/status")
-private class StatusResource
-
-const val STATUS_QUERY = "Lumen Field"
-
 fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create()) {
-    val apiKey = environment.config.propertyOrNull("googleMaps.apiKey")?.getString()
-        ?: File(environment.config.property("googleMaps.apiKeyFile").getString()).readText()
-    val dryRun = environment.config.propertyOrNull("googleMaps.dryRun")?.getString()?.toBoolean() ?: false
+    val config = environment.config
+    val apiKey = config.propertyAsString("googleMaps.apiKey", "googleMaps.apiKeyFile")
+    val dryRun = config.propertyAsBoolean("googleMaps.dryRun", false)
 
     install(Resources)
     routing {
         authenticate("api") {
-            rateLimit {
-                get<AddressResource> { address ->
-                    call.respond(callGeocodeAddressApi(engine, apiKey, dryRun, address.query))
+            route("/v1/google-maps") {
+                route("/verified") {
+                    rateLimit(RateLimitName("verified")) {
+                        get<AddressResource> { address ->
+                            call.respond(callGeocodeAddressApi(engine, apiKey, dryRun, address.query))
+                        }
+                        get<PlaceResource> { place ->
+                            call.respond(callGeocodePlacesApi(engine, apiKey, dryRun, place.id))
+                        }
+                    }
                 }
-            }
-            rateLimit {
-                get<PlaceResource> { place ->
-                    call.respond(callGeocodePlacesApi(engine, apiKey, dryRun, place.id))
+                route("/unverified") {
+                    rateLimit(RateLimitName("unverified")) {
+                        get<AddressResource> { address ->
+                            call.respond(callGeocodeAddressApi(engine, apiKey, dryRun, address.query))
+                        }
+                        get<PlaceResource> { place ->
+                            call.respond(callGeocodePlacesApi(engine, apiKey, dryRun, place.id))
+                        }
+                    }
                 }
             }
         }
         authenticate("status") {
-            rateLimit {
-                head<StatusResource> {
-                    val res = callGeocodeAddressApi(engine, apiKey, dryRun, STATUS_QUERY)
-                    if (res.results.firstOrNull()?.location != GoogleMapsLocation(47.5951518, -122.3316394)) {
-                        call.respond(HttpStatusCode.InternalServerError, "Unexpected location")
-                    } else {
-                        call.respond(HttpStatusCode.OK)
+            route("/v1/status/google-maps") {
+                rateLimit {
+                    head("/connection") {
+                        val res = callGeocodeAddressApi(engine, apiKey, dryRun, "Lumen Field")
+                        if (res.results.firstOrNull()?.location != GoogleMapsLocation(47.5951518, -122.3316394)) {
+                            call.respond(HttpStatusCode.InternalServerError, "Unexpected location")
+                        } else {
+                            call.respond(HttpStatusCode.OK)
+                        }
+                    }
+                    head("/verified/geocode/address/hour") {
+                        // TODO Report number of verified Google Maps Geocode Address queries
+                    }
+                    head("/verified/geocode/places/hour") {
+                        // TODO Report number of verified Google Maps Geocode Place queries
+                    }
+                    head("/unverified/geocode/address/hour") {
+                        // TODO Report number of unverified Google Maps Geocode Address queries
+                    }
+                    head("/unverified/geocode/places/hour") {
+                        // TODO Report number of unverified Google Maps Geocode Place queries
                     }
                 }
             }

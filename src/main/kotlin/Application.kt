@@ -11,48 +11,56 @@ import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respondText
-import kotlin.time.Duration.Companion.seconds
+import net.geoshare_app.lib.UpstreamNotFoundException
+import net.geoshare_app.lib.UpstreamUnauthorizedException
+import net.geoshare_app.lib.UpstreamUnknownException
+import net.geoshare_app.lib.ipToRateLimitBlock
+import net.geoshare_app.lib.propertyAsDuration
+import net.geoshare_app.lib.propertyAsInt
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
 fun Application.rootModule() {
-    val defaultLimit = environment.config.property("rateLimit.defaultLimit").getString()
-        .toInt()
-    val defaultRefillPeriod = environment.config.property("rateLimit.defaultRefillPeriodSec").getString()
-        .toInt().seconds
-    val loginLimit = environment.config.property("rateLimit.loginLimit").getString()
-        .toInt()
-    val loginRefillPeriod = environment.config.property("rateLimit.loginRefillPeriodSec").getString()
-        .toInt().seconds
-    val registerLimit = environment.config.property("rateLimit.registerLimit").getString()
-        .toInt()
-    val registerRefillPeriod = environment.config.property("rateLimit.registerRefillPeriodSec").getString()
-        .toInt().seconds
+    val config = environment.config
 
     install(ContentNegotiation) {
         json()
     }
     install(RateLimit) {
         register {
-            rateLimiter(limit = defaultLimit, refillPeriod = defaultRefillPeriod)
-            requestKey { applicationCall ->
-                applicationCall.principal<JWTPrincipal>()?.let { principal ->
-                    principal.subject?.takeIf {
-                        principal.payload.getClaim("device").asString()?.toDevice() == Device.VERIFIED
-                    }
-                } ?: "unverified-devices"
-            }
-        }
-        register(RateLimitName("login")) {
-            rateLimiter(limit = loginLimit, refillPeriod = loginRefillPeriod)
+            rateLimiter(
+                limit = config.propertyAsInt("rateLimit.default.limit"),
+                refillPeriod = config.propertyAsDuration("rateLimit.default.refillPeriodSec"),
+            )
             requestKey { applicationCall ->
                 applicationCall.request.headers["X-Real-Ip"]?.let { ipToRateLimitBlock(it) } ?: ""
             }
         }
         register(RateLimitName("register")) {
-            rateLimiter(limit = registerLimit, refillPeriod = registerRefillPeriod)
+            rateLimiter(
+                limit = config.propertyAsInt("rateLimit.register.limit"),
+                refillPeriod = config.propertyAsDuration("rateLimit.register.refillPeriodSec"),
+            )
             requestKey { applicationCall ->
                 applicationCall.request.headers["X-Real-Ip"]?.let { ipToRateLimitBlock(it) } ?: ""
+            }
+        }
+        register(RateLimitName("unverified")) {
+            rateLimiter(
+                limit = config.propertyAsInt("rateLimit.unverified.limit"),
+                refillPeriod = config.propertyAsDuration("rateLimit.unverified.refillPeriodSec"),
+            )
+            requestKey { applicationCall ->
+                applicationCall.principal<JWTPrincipal>()?.subject ?: ""
+            }
+        }
+        register(RateLimitName("verified")) {
+            rateLimiter(
+                limit = config.propertyAsInt("rateLimit.verified.limit"),
+                refillPeriod = config.propertyAsDuration("rateLimit.verified.refillPeriodSec"),
+            )
+            requestKey { applicationCall ->
+                applicationCall.principal<JWTPrincipal>()?.subject ?: ""
             }
         }
     }
@@ -69,6 +77,7 @@ fun Application.rootModule() {
             call.respondText(text = "Upstream request failed", status = HttpStatusCode.InternalServerError)
         }
         status(HttpStatusCode.TooManyRequests) { call, status ->
+            // TODO Collect rate limiting stats
             val retryAfter = call.response.headers["Retry-After"]
             call.respondText(text = "Too many requests. Wait for $retryAfter seconds", status = status)
         }

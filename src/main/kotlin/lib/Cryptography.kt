@@ -1,4 +1,4 @@
-package net.geoshare_app
+package net.geoshare_app.lib
 
 import java.security.KeyFactory
 import java.security.MessageDigest
@@ -8,6 +8,18 @@ import java.security.Signature
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import java.security.spec.X509EncodedKeySpec
+import java.util.Base64
+
+fun ByteArray.sha256Hex(): String =
+    MessageDigest.getInstance("SHA-256")
+        .digest(this)
+        .toHexString()
+
+fun ByteArray.base64Encode(): String =
+    Base64.getEncoder().encodeToString(this)
+
+fun String.base64Decode(): ByteArray =
+    Base64.getDecoder().decode(this)
 
 fun ByteArray.readCertificateFromDEROrPEM(): X509Certificate =
     CertificateFactory.getInstance("X.509")

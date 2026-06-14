@@ -1,4 +1,4 @@
-package net.geoshare_app
+package net.geoshare_app.lib
 
 import java.math.RoundingMode
 import kotlin.math.abs

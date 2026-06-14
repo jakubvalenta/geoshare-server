@@ -13,10 +13,8 @@ import io.ktor.server.routing.routing
 fun Application.statusModule(cache: Cache) {
     routing {
         authenticate("status") {
-            rateLimit(RateLimitName("login")) {
-                head("/v1/status") {
-                    // This status check just checks that Redis connection is okay. We could extend it in the future,
-                    // for example by checking whether there has been a successful login or registration recently
+            rateLimit {
+                head("/v1/status/cache") {
                     if (cache.ping()) {
                         call.respond(HttpStatusCode.OK)
                     } else {

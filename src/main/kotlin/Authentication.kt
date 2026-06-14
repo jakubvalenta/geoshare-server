@@ -16,17 +16,26 @@ import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.routing.head
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import java.io.File
+import net.geoshare_app.lib.base64Decode
+import net.geoshare_app.lib.base64Encode
+import net.geoshare_app.lib.fingerprint
+import net.geoshare_app.lib.propertyAsBytes
+import net.geoshare_app.lib.propertyAsDuration
+import net.geoshare_app.lib.propertyAsString
+import net.geoshare_app.lib.readCertificateFromDEROrPEM
+import net.geoshare_app.lib.readPublicKeyFromDER
+import net.geoshare_app.lib.sha256Hex
+import net.geoshare_app.lib.verifySignature
 import java.security.SecureRandom
 import java.util.Date
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 @Serializable
 data class ChallengeResponse(val challenge: String)
@@ -47,30 +56,15 @@ data class TokenResponse(val token: String) : AuthenticationResponse
 
 enum class Device { VERIFIED, UNVERIFIED }
 
-fun String.toDevice(): Device? =
-    try {
-        Device.valueOf(this)
-    } catch (_: IllegalArgumentException) {
-        null
-    }
-
-private fun createToken(publicKeyFingerprint: String, secret: ByteArray, expire: Duration, device: Device): String =
-    JWT.create()
-        .withSubject(publicKeyFingerprint)
-        .withClaim("device", device.name)
-        .withExpiresAt(Date(System.currentTimeMillis() + expire.inWholeMilliseconds))
-        .sign(Algorithm.HMAC256(secret))
-
 fun Application.authenticationModule(cache: Cache, certificateVerification: CertificateVerification) {
-    val challengeExpire = environment.config.property("auth.challengeExpireSec").getString().toInt().seconds
-    val deviceExpire = environment.config.property("auth.deviceExpireSec").getString().toInt().seconds
-    val jwtExpire = environment.config.property("auth.jwtExpireSec").getString().toInt().seconds
-    val jwtSecret = environment.config.propertyOrNull("auth.jwtSecret")?.getString()?.toByteArray()
-        ?: File(environment.config.property("auth.jwtSecretFile").getString()).readBytes()
-    val revocationListRefreshInterval = environment.config.property("auth.revocationListRefreshIntervalSec")
-        .getString().toInt().seconds
-    val statusApiTokenHash = environment.config.propertyOrNull("googleMaps.statusApiTokenHash")?.getString()
-        ?: File(environment.config.property("googleMaps.statusApiTokenHashFile").getString()).readText()
+    val config = environment.config
+
+    val challengeExpire = config.propertyAsDuration("auth.challengeExpireSec")
+    val deviceExpire = config.propertyAsDuration("auth.deviceExpireSec")
+    val jwtExpire = config.propertyAsDuration("auth.jwtExpireSec")
+    val jwtSecret = config.propertyAsBytes("auth.jwtSecret","auth.jwtSecretFile")
+    val revocationListRefreshInterval = config.propertyAsDuration("auth.revocationListRefreshIntervalSec")
+    val statusApiTokenHash = config.propertyAsString("auth.statusApiTokenHash","auth.statusApiTokenHashFile")
 
     val secureRandom = SecureRandom()
 
@@ -106,7 +100,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
         }
     }
     routing {
-        rateLimit(RateLimitName("login")) {
+        rateLimit {
             post("/v1/auth/challenge") {
                 val challenge = ByteArray(32).also { secureRandom.nextBytes(it) }
                 val challengeCacheKey = challenge.sha256Hex()
@@ -185,7 +179,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
             }
         }
 
-        rateLimit(RateLimitName("login")) {
+        rateLimit {
             post("/v1/auth/login") {
                 val req = call.receive<LoginRequest>()
                 val challenge = req.challenge.base64Decode()
@@ -223,6 +217,33 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                     is TokenResponse -> call.respond(res)
                 }
             }
+
+            head("/v1/status/auth/login/successful/hour") {
+                // TODO Report number of successful logins
+            }
+            head("/v1/status/auth/login/unsuccessful/hour") {
+                // TODO Report number of unsuccessful logins
+            }
+            head("/v1/status/auth/register/successful/hour") {
+                // TODO Report number of successful registrations
+            }
+            head("/v1/status/auth/register/unsuccessful/hour") {
+                // TODO Report number of unsuccessful registrations
+            }
         }
     }
 }
+
+fun String.toDevice(): Device? =
+    try {
+        Device.valueOf(this)
+    } catch (_: IllegalArgumentException) {
+        null
+    }
+
+private fun createToken(publicKeyFingerprint: String, secret: ByteArray, expire: Duration, device: Device): String =
+    JWT.create()
+        .withSubject(publicKeyFingerprint)
+        .withClaim("device", device.name)
+        .withExpiresAt(Date(System.currentTimeMillis() + expire.inWholeMilliseconds))
+        .sign(Algorithm.HMAC256(secret))

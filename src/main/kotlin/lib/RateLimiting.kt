@@ -1,9 +1,11 @@
-package net.geoshare_app
+package net.geoshare_app.lib
 
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.UnknownHostException
+
+private val simpleIPv4Regex = Regex("""^[\d.]+$""")
 
 /**
  * Returns the network block of [ip] used as a rate-limiting key.
@@ -22,8 +24,13 @@ import java.net.UnknownHostException
  * ```
  */
 fun ipToRateLimitBlock(ip: String): String {
+    if (!simpleIPv4Regex.matches(ip) && !ip.contains(":")) {
+        // Make sure the input is an IPv4 or IPv6 address, so that getByName() only creates an address object and
+        // doesn't perform an actual DNS lookup. This check accepts malformed IP addresses, because they will be caught
+        // by getByName().
+        return ip
+    }
     val address = try {
-        // getByName() performs no DNS lookup for numeric IP literals
         InetAddress.getByName(ip)
     } catch (_: UnknownHostException) {
         return ip

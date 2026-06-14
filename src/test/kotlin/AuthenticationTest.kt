@@ -11,12 +11,16 @@ import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
+import net.geoshare_app.lib.base64Decode
+import net.geoshare_app.lib.base64Encode
+import net.geoshare_app.lib.fingerprint
+import net.geoshare_app.lib.sign
 import net.geoshare_app.testing.CertLists
 import net.geoshare_app.testing.Certs
 import net.geoshare_app.testing.FakeCache
 import net.geoshare_app.testing.TestCertificateVerification
 import net.geoshare_app.testing.Tokens
-import net.geoshare_app.testing.jsonClient
+import net.geoshare_app.testing.jsonHttpClient
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
@@ -34,7 +38,7 @@ class AuthenticationTest {
             authenticationModule(cache, TestCertificateVerification(cache))
         }
 
-        val res = jsonClient.post("/v1/auth/challenge")
+        val res = jsonHttpClient.post("/v1/auth/challenge")
         assertEquals(HttpStatusCode.OK, res.status)
         assertEquals(32, res.body<ChallengeResponse>().challenge.base64Decode().size)
     }
@@ -54,7 +58,7 @@ class AuthenticationTest {
         val registrationChallenge = "spam".toByteArray()
         val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
         val certificateChain = CertLists.validFactoryProvisioned
-        val res = jsonClient.post("/v1/auth/register") {
+        val res = jsonHttpClient.post("/v1/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(
                 RegisterRequest(
@@ -80,13 +84,13 @@ class AuthenticationTest {
         }
 
         // Registration challenge
-        val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+        val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Register
         val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
         val certificateChain = CertLists.validFactoryProvisioned
-        val res = jsonClient.post("/v1/auth/register") {
+        val res = jsonHttpClient.post("/v1/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(
                 RegisterRequest(
@@ -102,7 +106,7 @@ class AuthenticationTest {
         assertEquals(Device.VERIFIED, token.getClaim("device").asString().toDevice())
 
         // Register 2
-        val res2 = jsonClient.post("/v1/auth/register") {
+        val res2 = jsonHttpClient.post("/v1/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(
                 RegisterRequest(
@@ -129,7 +133,7 @@ class AuthenticationTest {
             }
 
             // Registration challenge
-            val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+            val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
                 .body<ChallengeResponse>().challenge.base64Decode()
 
             advanceTimeBy(3.seconds)
@@ -137,7 +141,7 @@ class AuthenticationTest {
             // Register
             val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
             val certificateChain = CertLists.validFactoryProvisioned
-            val res = jsonClient.post("/v1/auth/register") {
+            val res = jsonHttpClient.post("/v1/auth/register") {
                 contentType(ContentType.Application.Json)
                 setBody(
                     RegisterRequest(
@@ -164,13 +168,13 @@ class AuthenticationTest {
         }
 
         // Registration challenge
-        val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+        val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Register
         val registrationSignature = Certs.intermediateKey.private.sign(registrationChallenge)
         val certificateChain = CertLists.noLeaf
-        val res = jsonClient.post("/v1/auth/register") {
+        val res = jsonHttpClient.post("/v1/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(
                 RegisterRequest(
@@ -196,13 +200,13 @@ class AuthenticationTest {
         }
 
         // Registration challenge
-        val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+        val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Register
         val registrationSignature = Certs.intermediateKey.private.sign(registrationChallenge)
         val certificateChain = CertLists.validFactoryProvisioned
-        val res = jsonClient.post("/v1/auth/register") {
+        val res = jsonHttpClient.post("/v1/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(
                 RegisterRequest(
@@ -229,13 +233,13 @@ class AuthenticationTest {
             }
 
             // Registration challenge
-            val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+            val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
                 .body<ChallengeResponse>().challenge.base64Decode()
 
             // Register
             val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
             val certificateChain = CertLists.revoked
-            val res = jsonClient.post("/v1/auth/register") {
+            val res = jsonHttpClient.post("/v1/auth/register") {
                 contentType(ContentType.Application.Json)
                 setBody(
                     RegisterRequest(
@@ -262,13 +266,13 @@ class AuthenticationTest {
         }
 
         // Registration challenge
-        val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+        val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Register
         val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
         val certificateChain = CertLists.validFactoryProvisioned
-        val res = jsonClient.post("/v1/auth/register") {
+        val res = jsonHttpClient.post("/v1/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(
                 RegisterRequest(
@@ -296,13 +300,13 @@ class AuthenticationTest {
         }
 
         // Registration challenge
-        val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+        val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Register
         val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
         val certificateChain = CertLists.selfSigned
-        val res = jsonClient.post("/v1/auth/register") {
+        val res = jsonHttpClient.post("/v1/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(
                 RegisterRequest(
@@ -333,7 +337,7 @@ class AuthenticationTest {
         val loginChallenge = "spam".toByteArray()
         val loginSignature = Certs.leafKey.private.sign(loginChallenge)
         val publicKey = Certs.leafKey.public
-        val res = jsonClient.post("/v1/auth/login") {
+        val res = jsonHttpClient.post("/v1/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(
                 LoginRequest(
@@ -359,13 +363,13 @@ class AuthenticationTest {
         }
 
         // Registration challenge
-        val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+        val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Register
         val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
         val certificateChain = CertLists.validFactoryProvisioned
-        jsonClient.post("/v1/auth/register") {
+        jsonHttpClient.post("/v1/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(
                 RegisterRequest(
@@ -377,13 +381,13 @@ class AuthenticationTest {
         }
 
         // Login challenge
-        val loginChallenge = jsonClient.post("/v1/auth/challenge")
+        val loginChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Login
         val loginSignature = Certs.leafKey.private.sign(loginChallenge)
         val publicKey = Certs.leafKey.public
-        val res = jsonClient.post("/v1/auth/login") {
+        val res = jsonHttpClient.post("/v1/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(
                 LoginRequest(
@@ -399,7 +403,7 @@ class AuthenticationTest {
         assertEquals(Device.VERIFIED, token.getClaim("device").asString().toDevice())
 
         // Login again
-        val res2 = jsonClient.post("/v1/auth/login") {
+        val res2 = jsonHttpClient.post("/v1/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(
                 LoginRequest(
@@ -426,13 +430,13 @@ class AuthenticationTest {
             }
 
             // Registration challenge
-            val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+            val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
                 .body<ChallengeResponse>().challenge.base64Decode()
 
             // Register
             val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
             val certificateChain = CertLists.validFactoryProvisioned
-            jsonClient.post("/v1/auth/register") {
+            jsonHttpClient.post("/v1/auth/register") {
                 contentType(ContentType.Application.Json)
                 setBody(
                     RegisterRequest(
@@ -444,7 +448,7 @@ class AuthenticationTest {
             }
 
             // Login challenge
-            val loginChallenge = jsonClient.post("/v1/auth/challenge")
+            val loginChallenge = jsonHttpClient.post("/v1/auth/challenge")
                 .body<ChallengeResponse>().challenge.base64Decode()
 
             advanceTimeBy(3.seconds)
@@ -452,7 +456,7 @@ class AuthenticationTest {
             // Login
             val loginSignature = Certs.leafKey.private.sign(loginChallenge)
             val publicKey = Certs.leafKey.public
-            val res = jsonClient.post("/v1/auth/login") {
+            val res = jsonHttpClient.post("/v1/auth/login") {
                 contentType(ContentType.Application.Json)
                 setBody(
                     LoginRequest(
@@ -479,13 +483,13 @@ class AuthenticationTest {
         }
 
         // Login challenge
-        val loginChallenge = jsonClient.post("/v1/auth/challenge")
+        val loginChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Login
         val loginSignature = Certs.leafKey.private.sign(loginChallenge)
         val publicKey = Certs.leafKey.public
-        val res = jsonClient.post("/v1/auth/login") {
+        val res = jsonHttpClient.post("/v1/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(
                 LoginRequest(
@@ -512,13 +516,13 @@ class AuthenticationTest {
             }
 
             // Registration challenge
-            val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+            val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
                 .body<ChallengeResponse>().challenge.base64Decode()
 
             // Register
             val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
             val certificateChain = CertLists.validFactoryProvisioned
-            jsonClient.post("/v1/auth/register") {
+            jsonHttpClient.post("/v1/auth/register") {
                 contentType(ContentType.Application.Json)
                 setBody(
                     RegisterRequest(
@@ -532,13 +536,13 @@ class AuthenticationTest {
             advanceTimeBy(7.seconds)
 
             // Login challenge
-            val loginChallenge = jsonClient.post("/v1/auth/challenge")
+            val loginChallenge = jsonHttpClient.post("/v1/auth/challenge")
                 .body<ChallengeResponse>().challenge.base64Decode()
 
             // Login
             val loginSignature = Certs.leafKey.private.sign(loginChallenge)
             val publicKey = Certs.leafKey.public
-            val res = jsonClient.post("/v1/auth/login") {
+            val res = jsonHttpClient.post("/v1/auth/login") {
                 contentType(ContentType.Application.Json)
                 setBody(
                     LoginRequest(
@@ -565,13 +569,13 @@ class AuthenticationTest {
         }
 
         // Registration challenge
-        val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+        val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Register
         val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
         val certificateChain = CertLists.validFactoryProvisioned
-        jsonClient.post("/v1/auth/register") {
+        jsonHttpClient.post("/v1/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(
                 RegisterRequest(
@@ -583,13 +587,13 @@ class AuthenticationTest {
         }
 
         // Login challenge
-        val loginChallenge = jsonClient.post("/v1/auth/challenge")
+        val loginChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Login
         val loginSignature = Certs.intermediateKey.private.sign(loginChallenge)
         val publicKey = Certs.leafKey.public
-        val res = jsonClient.post("/v1/auth/login") {
+        val res = jsonHttpClient.post("/v1/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(
                 LoginRequest(
@@ -615,13 +619,13 @@ class AuthenticationTest {
         }
 
         // Registration challenge
-        val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+        val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Register
         val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
         val certificateChain = CertLists.validFactoryProvisioned
-        jsonClient.post("/v1/auth/register") {
+        jsonHttpClient.post("/v1/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(
                 RegisterRequest(
@@ -633,13 +637,13 @@ class AuthenticationTest {
         }
 
         // Login challenge
-        val loginChallenge = jsonClient.post("/v1/auth/challenge")
+        val loginChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Login
         val loginSignature = Certs.leafKey.private.sign(loginChallenge)
         val publicKey = Certs.leafKey.public
-        val res = jsonClient.post("/v1/auth/login") {
+        val res = jsonHttpClient.post("/v1/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(
                 LoginRequest(
@@ -667,13 +671,13 @@ class AuthenticationTest {
         }
 
         // Registration challenge
-        val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+        val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Register
         val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
         val certificateChain = CertLists.selfSigned
-        jsonClient.post("/v1/auth/register") {
+        jsonHttpClient.post("/v1/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(
                 RegisterRequest(
@@ -685,13 +689,13 @@ class AuthenticationTest {
         }
 
         // Login challenge
-        val loginChallenge = jsonClient.post("/v1/auth/challenge")
+        val loginChallenge = jsonHttpClient.post("/v1/auth/challenge")
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Login
         val loginSignature = Certs.leafKey.private.sign(loginChallenge)
         val publicKey = Certs.leafKey.public
-        val res = jsonClient.post("/v1/auth/login") {
+        val res = jsonHttpClient.post("/v1/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(
                 LoginRequest(
@@ -721,13 +725,13 @@ class AuthenticationTest {
                 }
 
                 // Registration challenge
-                val registrationChallenge = jsonClient.post("/v1/auth/challenge")
+                val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
                     .body<ChallengeResponse>().challenge.base64Decode()
 
                 // Register
                 val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
                 val certificateChain = CertLists.validFactoryProvisioned
-                jsonClient.post("/v1/auth/register") {
+                jsonHttpClient.post("/v1/auth/register") {
                     contentType(ContentType.Application.Json)
                     setBody(
                         RegisterRequest(
@@ -742,13 +746,13 @@ class AuthenticationTest {
                 advanceTimeBy(5.seconds)
 
                 // Login challenge
-                val loginChallenge = jsonClient.post("/v1/auth/challenge")
+                val loginChallenge = jsonHttpClient.post("/v1/auth/challenge")
                     .body<ChallengeResponse>().challenge.base64Decode()
 
                 // Login
                 val loginSignature = Certs.leafKey.private.sign(loginChallenge)
                 val publicKey = Certs.leafKey.public
-                val res = jsonClient.post("/v1/auth/login") {
+                val res = jsonHttpClient.post("/v1/auth/login") {
                     contentType(ContentType.Application.Json)
                     setBody(
                         LoginRequest(
@@ -764,12 +768,12 @@ class AuthenticationTest {
                 advanceTimeBy(5.seconds)
 
                 // Login challenge
-                val loginChallenge2 = jsonClient.post("/v1/auth/challenge")
+                val loginChallenge2 = jsonHttpClient.post("/v1/auth/challenge")
                     .body<ChallengeResponse>().challenge.base64Decode()
 
                 // Login
                 val loginSignature2 = Certs.leafKey.private.sign(loginChallenge2)
-                val res2 = jsonClient.post("/v1/auth/login") {
+                val res2 = jsonHttpClient.post("/v1/auth/login") {
                     contentType(ContentType.Application.Json)
                     setBody(
                         LoginRequest(

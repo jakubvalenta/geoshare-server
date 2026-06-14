@@ -197,7 +197,7 @@ class ApplicationTest {
 
         // The first few requests pass
         repeat(5) {
-            val res = client.get("/v1/google-maps/geocode/address/$query") {
+            val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
                 headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
                 headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
                 accept(ContentType.Application.Json)
@@ -205,7 +205,7 @@ class ApplicationTest {
             assertEquals(HttpStatusCode.OK, res.status)
         }
         // The next request is rate-limited
-        val res = client.get("/v1/google-maps/geocode/address/$query") {
+        val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
             headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}" // Same token
             headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
             accept(ContentType.Application.Json)
@@ -227,7 +227,7 @@ class ApplicationTest {
 
         // The first few requests pass
         repeat(5) {
-            val res = client.get("/v1/google-maps/geocode/address/$query") {
+            val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
                 headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validUnverifiedDevice}"
                 headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
                 accept(ContentType.Application.Json)
@@ -235,7 +235,7 @@ class ApplicationTest {
             assertEquals(HttpStatusCode.OK, res.status)
         }
         // The next request is rate-limited
-        val res = client.get("/v1/google-maps/geocode/address/$query") {
+        val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
             headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validUnverifiedDevice}" // Same token
             headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
             accept(ContentType.Application.Json)
@@ -257,7 +257,7 @@ class ApplicationTest {
 
         // The first few requests pass
         repeat(5) {
-            val res = client.get("/v1/google-maps/geocode/address/$query") {
+            val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
                 headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
                 headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
                 accept(ContentType.Application.Json)
@@ -265,8 +265,8 @@ class ApplicationTest {
             assertEquals(HttpStatusCode.OK, res.status)
         }
         // The next request passes too
-        val res = client.get("/v1/google-maps/geocode/address/$query") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validUnverifiedDevice}" // Different token
+        val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid2}" // Different token
             headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
             accept(ContentType.Application.Json)
         }
