@@ -363,7 +363,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                         }
                     }
                     head("/unauthorized/hour") {
-                        // TODO Test auth unauthorized status
+                        // Check that there hasn't been too unauthorized requests
                         with(call.details) {
                             val num = statsRepository.get("stats:auth:unauthorized:$hour:total")
                             if (num > 100) {

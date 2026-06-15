@@ -1136,4 +1136,69 @@ class AuthenticationTest {
         assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
     }
+
+    @Test
+    fun `status unauthorized route - when the number exceeds threshold, it returns failure`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+        }
+
+        // When the number is low, it returns success
+        val hour = CallDetails.formatCurrentHour()
+        repeat(100) {
+            statsRepository.increase("stats:auth:unauthorized:$hour:total")
+        }
+        val resSuccess = client.head("/v1/status/auth/unauthorized/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(HttpStatusCode.OK, resSuccess.status)
+
+        // When the number exceeds threshold, it returns failure
+        statsRepository.increase("stats:auth:unauthorized:$hour:total")
+        val resFailure = client.head("/v1/status/auth/unauthorized/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(StatusFailed, resFailure.status)
+    }
+
+    @Test
+    fun `status unauthorized route - when called with incorrect token, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            statusModule(cache, statsRepository)
+        }
+
+        val res = client.head("/v1/status/auth/unauthorized/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer spam"
+            headers["X-Real-Ip"] = "203.0.113.1"
+        }
+        assertEquals(HttpStatusCode.Unauthorized, res.status)
+
+        val hour = CallDetails.formatCurrentHour()
+        val endpoint = "status"
+        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
+    }
 }
