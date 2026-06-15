@@ -4,6 +4,7 @@ import io.ktor.server.plugins.di.annotations.Property
 import io.lettuce.core.ExperimentalLettuceCoroutinesApi
 import io.lettuce.core.RedisClient
 import io.lettuce.core.RedisException
+import io.lettuce.core.ScriptOutputType
 import io.lettuce.core.SetArgs
 import io.lettuce.core.api.coroutines
 import kotlin.time.Duration
@@ -26,6 +27,36 @@ class CacheImpl(connectionUri: String) : Cache {
     private val connection = client.connect()
     private val commands = connection.coroutines()
 
+    /**
+     * Script to atomically increase a key and set its expiration. Arguments: expire
+     */
+    private val increaseScript = connection.sync().scriptLoad(
+        @Suppress("SpellCheckingInspection")
+        // language=Lua
+        """
+        local current
+            current = redis.call("incr", KEYS[1])
+        if current == 1 then
+            redis.call("expire", KEYS[1], ARGV[1])
+        end
+        """
+    )
+
+    /**
+     * Script to atomically increase a hash and set its expiration. Arguments: field, amount, expire
+     */
+    private val hashIncreaseScript = connection.sync().scriptLoad(
+        @Suppress("SpellCheckingInspection")
+        // language=Lua
+        """
+        local current
+            current = redis.call("hincrby", KEYS[1], ARGV[1], ARGV[2])
+        if current == 1 then
+            redis.call("expire", KEYS[1], ARGV[3])
+        end
+        """
+    )
+
     override suspend fun get(key: String) =
         commands.get(key)
 
@@ -41,15 +72,23 @@ class CacheImpl(connectionUri: String) : Cache {
     }
 
     override suspend fun increase(key: String, expire: Duration) {
-        commands.incr(key)
-        // TODO Fix possible dangling key if expire crashes
-        commands.expire(key, expire.inWholeSeconds)
+        commands.evalsha<Any>(
+            increaseScript,
+            ScriptOutputType.STATUS,
+            arrayOf(key),
+            expire.inWholeMilliseconds.toString(),
+        )
     }
 
     override suspend fun hashIncrease(key: String, field: String, expire: Duration) {
-        commands.hincrby(key, field, 1)
-        // TODO Fix possible dangling key if expire crashes
-        commands.expire(key, expire.inWholeSeconds)
+        commands.evalsha<Any>(
+            hashIncreaseScript,
+            ScriptOutputType.STATUS,
+            arrayOf(key),
+            field,
+            "1",
+            expire.inWholeMilliseconds.toString(),
+        )
     }
 
     override suspend fun delete(key: String) {
