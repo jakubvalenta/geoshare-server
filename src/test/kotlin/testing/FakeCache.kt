@@ -66,12 +66,7 @@ class FakeCache(private val timeSource: TimeSource = TimeSource.Monotonic) : Cac
 
     override suspend fun hashIncrease(key: String, field: String, expire: Duration) {
         if (map.contains(key)) {
-            val hash = (map[key] as HashItem).value
-            if (hash.contains(field)) {
-                hash[field]?.plus(1)
-            } else {
-                hash[field] = 1
-            }
+            (map[key] as HashItem).run { value[field] = value.getOrDefault(field, 0) + 1 }
         } else {
             map[key] = HashItem(mutableMapOf(field to 1), timeSource.markNow(), expire)
         }
