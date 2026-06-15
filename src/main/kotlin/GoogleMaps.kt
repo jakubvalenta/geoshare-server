@@ -182,7 +182,6 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
             authenticate("dispatch") {
                 rateLimit {
                     get<AddressResource> { address ->
-                        // TODO Test Google Maps Geocode Address dispatch
                         when (call.authentication.principal<JWTPrincipal>()?.toDevice()) {
                             Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/address/${address.query}")
                             Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/address/${address.query}")
@@ -190,7 +189,6 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                         }
                     }
                     get<PlaceResource> { place ->
-                        // TODO Test Google Maps Geocode Places dispatch
                         when (call.authentication.principal<JWTPrincipal>()?.toDevice()) {
                             Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/places/${place.id}")
                             Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/places/${place.id}")

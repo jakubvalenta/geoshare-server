@@ -64,7 +64,7 @@ class ApplicationTest {
         }
         // The next request is rate-limited
         val res = client.post("/v1/auth/challenge") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validVerifiedDevice}"
             // X-Real-Ip header is not set
             accept(ContentType.Application.Json)
         }
@@ -104,7 +104,7 @@ class ApplicationTest {
             }
             // The next request is rate-limited
             val res = client.post("/v1/auth/challenge") {
-                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validVerifiedDevice}"
                 headers["X-Real-Ip"] = "203.0.113.2" // Different IPv4 address with the same /24 prefix
                 accept(ContentType.Application.Json)
             }
@@ -146,7 +146,7 @@ class ApplicationTest {
             }
             // The next request is rate-limited
             val res = client.post("/v1/auth/challenge") {
-                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validVerifiedDevice}"
                 headers["X-Real-Ip"] = "2001:db8:dead:beef::2" // Different IPv6 address with the same /64 prefix
                 accept(ContentType.Application.Json)
             }
@@ -188,7 +188,7 @@ class ApplicationTest {
             }
             // The next request passes too
             val res = client.post("/v1/auth/challenge") {
-                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validVerifiedDevice}"
                 headers["X-Real-Ip"] = "192.0.3.1" // Different IPv4 address with the same /16 prefix
                 accept(ContentType.Application.Json)
             }
@@ -230,7 +230,7 @@ class ApplicationTest {
             }
             // The next request passes too
             val res = client.post("/v1/auth/challenge") {
-                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validVerifiedDevice}"
                 headers["X-Real-Ip"] = "2001:db8:dead::1" // Different IPv6 address with the same /48 prefix
                 accept(ContentType.Application.Json)
             }
@@ -306,7 +306,7 @@ class ApplicationTest {
             // The first few requests pass
             repeat(5) {
                 val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
-                    headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+                    headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validVerifiedDevice}"
                     headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
                     accept(ContentType.Application.Json)
                 }
@@ -314,7 +314,7 @@ class ApplicationTest {
             }
             // The next request is rate-limited
             val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
-                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}" // Same token
+                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validVerifiedDevice}" // Same token
                 headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
                 accept(ContentType.Application.Json)
             }
@@ -347,7 +347,7 @@ class ApplicationTest {
             // The first few requests pass
             repeat(5) {
                 val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
-                    headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+                    headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validVerifiedDevice}"
                     headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
                     accept(ContentType.Application.Json)
                 }
@@ -355,7 +355,7 @@ class ApplicationTest {
             }
             // The next request passes too
             val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
-                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid2}" // Different token
+                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validVerifiedDeviceTwo}" // Different token
                 headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
                 accept(ContentType.Application.Json)
             }
@@ -365,7 +365,7 @@ class ApplicationTest {
             val endpoint = "google-maps-verified-address"
             val ip = "203.0.113.1"
             val subject = Certs.leafKey.public.fingerprint()
-            val subject2 = "test-public-key-fingerprint-2"
+            val subject2 = "test-public-key-fingerprint-two"
             assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-endpoint", endpoint))
             assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", ip))
             assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-subject", subject))

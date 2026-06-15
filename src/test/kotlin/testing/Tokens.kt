@@ -11,7 +11,7 @@ import kotlin.time.Duration.Companion.minutes
 object Tokens {
     const val JWT_SECRET = "test-secret"
 
-    val valid: String by lazy {
+    val validVerifiedDevice: String by lazy {
         JWT.create()
             .withSubject(Certs.leafKey.public.fingerprint())
             .withClaim("device", Device.VERIFIED.name)
@@ -19,9 +19,9 @@ object Tokens {
             .sign(Algorithm.HMAC256(JWT_SECRET))
     }
 
-    val valid2: String by lazy {
+    val validVerifiedDeviceTwo: String by lazy {
         JWT.create()
-            .withSubject("test-public-key-fingerprint-2")
+            .withSubject("test-public-key-fingerprint-two")
             .withClaim("device", Device.VERIFIED.name)
             .withExpiresAt(Date(System.currentTimeMillis() + 1.minutes.inWholeMilliseconds))
             .sign(Algorithm.HMAC256(JWT_SECRET))
@@ -35,9 +35,17 @@ object Tokens {
             .sign(Algorithm.HMAC256(JWT_SECRET))
     }
 
-    val expired: String by lazy {
+    val invalidMissingDevice: String by lazy {
         JWT.create()
             .withSubject(Certs.leafKey.public.fingerprint())
+            .withExpiresAt(Date(System.currentTimeMillis() + 1.minutes.inWholeMilliseconds))
+            .sign(Algorithm.HMAC256(JWT_SECRET))
+    }
+
+    val invalidExpired: String by lazy {
+        JWT.create()
+            .withSubject(Certs.leafKey.public.fingerprint())
+            .withClaim("device", Device.VERIFIED.name)
             .withExpiresAt(Date(System.currentTimeMillis() - 1.minutes.inWholeMilliseconds))
             .sign(Algorithm.HMAC256(JWT_SECRET))
     }
