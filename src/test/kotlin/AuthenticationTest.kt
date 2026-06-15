@@ -36,12 +36,12 @@ import kotlin.time.Duration.Companion.seconds
 class AuthenticationTest {
     @Test
     fun `challenge route - always returns challenge of 32 bytes`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
@@ -49,16 +49,19 @@ class AuthenticationTest {
         val res = jsonHttpClient.post("/v1/auth/challenge")
         assertEquals(HttpStatusCode.OK, res.status)
         assertEquals(32, res.body<ChallengeResponse>().challenge.base64Decode().size)
+
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.get("stats:auth:challenge:success:$hour:total"))
     }
 
     @Test
     fun `register route - when challenge is not found in cache, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
@@ -79,16 +82,19 @@ class AuthenticationTest {
         }
         assertEquals(HttpStatusCode.Unauthorized, res.status)
         assertEquals("Invalid challenge", res.body())
+
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.get("stats:auth:register:error:$hour:total"))
     }
 
     @Test
     fun `register route - when challenge has been used, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
@@ -128,17 +134,20 @@ class AuthenticationTest {
         }
         assertEquals(HttpStatusCode.Unauthorized, res2.status)
         assertEquals("Invalid challenge", res2.body())
+
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.get("stats:auth:register:error:$hour:total"))
     }
 
     @Test
     fun `register route - when challenge expires, it returns 401`() = runTest {
         testApplication(testScheduler) {
+            val cache = FakeCache(testScheduler.timeSource)
+            val statsRepository = StatsRepository(cache)
             environment {
                 config = ApplicationConfig("application-test.conf")
             }
             application {
-                val cache = FakeCache(testScheduler.timeSource)
-                val statsRepository = StatsRepository(cache)
                 rootModule(statsRepository)
                 authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             }
@@ -164,17 +173,20 @@ class AuthenticationTest {
             }
             assertEquals(HttpStatusCode.Unauthorized, res.status)
             assertEquals("Invalid challenge", res.body())
+
+            val hour = CallDetails.formatCurrentHour()
+            assertEquals(1, statsRepository.get("stats:auth:register:error:$hour:total"))
         }
     }
 
     @Test
     fun `register route - when certificate chain is invalid, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
@@ -198,16 +210,19 @@ class AuthenticationTest {
         }
         assertEquals(HttpStatusCode.Unauthorized, res.status)
         assertEquals("Extension parsing failure", res.body())
+
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.get("stats:auth:register:error:$hour:total"))
     }
 
     @Test
     fun `register route - when signature is invalid, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
@@ -231,17 +246,20 @@ class AuthenticationTest {
         }
         assertEquals(HttpStatusCode.Unauthorized, res.status)
         assertEquals("Invalid signature", res.body())
+
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.get("stats:auth:register:error:$hour:total"))
     }
 
     @Test
     fun `register route - when certificate has been revoked, it returns 401`() = runTest {
         testApplication {
+            val cache = FakeCache(testScheduler.timeSource)
+            val statsRepository = StatsRepository(cache)
             environment {
                 config = ApplicationConfig("application-test.conf")
             }
             application {
-                val cache = FakeCache(testScheduler.timeSource)
-                val statsRepository = StatsRepository(cache)
                 rootModule(statsRepository)
                 authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             }
@@ -265,17 +283,20 @@ class AuthenticationTest {
             }
             assertEquals(HttpStatusCode.Unauthorized, res.status)
             assertEquals("Path validation failure chain", res.body())
+
+            val hour = CallDetails.formatCurrentHour()
+            assertEquals(1, statsRepository.get("stats:auth:register:error:$hour:total"))
         }
     }
 
     @Test
     fun `register route - when signature is valid, it returns token`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
@@ -301,51 +322,58 @@ class AuthenticationTest {
         val token = Tokens.verify(res.body<TokenResponse>().token)
         assertEquals(Certs.leafKey.public.fingerprint(), token.subject)
         assertEquals(Device.VERIFIED, token.getClaim("device").asString().toDevice())
+
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.get("stats:auth:register:success:$hour:total"))
     }
 
     @Test
-    fun `register route - when signature is valid with self-signed key extension with unknown boot key, it returns token with unverified device`() = testApplication {
-        environment {
-            config = ApplicationConfig("application-test.conf")
-        }
-        application {
+    fun `register route - when signature is valid with self-signed key extension with unknown boot key, it returns token with unverified device`() =
+        testApplication {
             val cache = FakeCache()
             val statsRepository = StatsRepository(cache)
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-        }
+            environment {
+                config = ApplicationConfig("application-test.conf")
+            }
+            application {
+                rootModule(statsRepository)
+                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            }
 
-        // Registration challenge
-        val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
-            .body<ChallengeResponse>().challenge.base64Decode()
+            // Registration challenge
+            val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
+                .body<ChallengeResponse>().challenge.base64Decode()
 
-        // Register
-        val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
-        val certificateChain = CertLists.selfSigned
-        val res = jsonHttpClient.post("/v1/auth/register") {
-            contentType(ContentType.Application.Json)
-            setBody(
-                RegisterRequest(
-                    challenge = registrationChallenge.base64Encode(),
-                    signature = registrationSignature.base64Encode(),
-                    certificateChain = certificateChain.map { it.encoded.base64Encode() },
+            // Register
+            val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
+            val certificateChain = CertLists.selfSigned
+            val res = jsonHttpClient.post("/v1/auth/register") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    RegisterRequest(
+                        challenge = registrationChallenge.base64Encode(),
+                        signature = registrationSignature.base64Encode(),
+                        certificateChain = certificateChain.map { it.encoded.base64Encode() },
+                    )
                 )
-            )
+            }
+            assertEquals(HttpStatusCode.OK, res.status)
+            val token = Tokens.verify(res.body<TokenResponse>().token)
+            assertEquals(Certs.leafKey.public.fingerprint(), token.subject)
+            assertEquals(Device.UNVERIFIED, token.getClaim("device").asString().toDevice())
+
+            val hour = CallDetails.formatCurrentHour()
+            assertEquals(1, statsRepository.get("stats:auth:register:success:$hour:total"))
         }
-        assertEquals(HttpStatusCode.OK, res.status)
-        val token = Tokens.verify(res.body<TokenResponse>().token)
-        assertEquals(Certs.leafKey.public.fingerprint(), token.subject)
-        assertEquals(Device.UNVERIFIED, token.getClaim("device").asString().toDevice())
-    }
 
     @Test
     fun `login route - when challenge is not found, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
@@ -366,16 +394,19 @@ class AuthenticationTest {
         }
         assertEquals(HttpStatusCode.Unauthorized, res.status)
         assertEquals("Invalid challenge", res.body())
+
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.get("stats:auth:login:error:$hour:total"))
     }
 
     @Test
     fun `login route - when challenge has been used, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
@@ -433,17 +464,20 @@ class AuthenticationTest {
         }
         assertEquals(HttpStatusCode.Unauthorized, res2.status)
         assertEquals("Invalid challenge", res2.body())
+
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.get("stats:auth:login:error:$hour:total"))
     }
 
     @Test
     fun `login route - when challenge expires, it returns 401`() = runTest {
         testApplication(testScheduler) {
+            val cache = FakeCache(testScheduler.timeSource)
+            val statsRepository = StatsRepository(cache)
             environment {
                 config = ApplicationConfig("application-test.conf")
             }
             application {
-                val cache = FakeCache(testScheduler.timeSource)
-                val statsRepository = StatsRepository(cache)
                 rootModule(statsRepository)
                 authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             }
@@ -487,17 +521,20 @@ class AuthenticationTest {
             }
             assertEquals(HttpStatusCode.Unauthorized, res.status)
             assertEquals("Invalid challenge", res.body())
+
+            val hour = CallDetails.formatCurrentHour()
+            assertEquals(1, statsRepository.get("stats:auth:login:error:$hour:total"))
         }
     }
 
     @Test
     fun `login route - when device is not found, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
@@ -521,17 +558,20 @@ class AuthenticationTest {
         }
         assertEquals(HttpStatusCode.Unauthorized, res.status)
         assertEquals("Unknown device", res.body())
+
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.get("stats:auth:login:error:$hour:total"))
     }
 
     @Test
     fun `login route - when device expires, it returns 401`() = runTest {
         testApplication(testScheduler) {
+            val cache = FakeCache(testScheduler.timeSource)
+            val statsRepository = StatsRepository(cache)
             environment {
                 config = ApplicationConfig("application-test.conf")
             }
             application {
-                val cache = FakeCache(testScheduler.timeSource)
-                val statsRepository = StatsRepository(cache)
                 rootModule(statsRepository)
                 authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             }
@@ -575,17 +615,20 @@ class AuthenticationTest {
             }
             assertEquals(HttpStatusCode.Unauthorized, res.status)
             assertEquals("Unknown device", res.body())
+
+            val hour = CallDetails.formatCurrentHour()
+            assertEquals(1, statsRepository.get("stats:auth:login:error:$hour:total"))
         }
     }
 
     @Test
     fun `login route - when signature is invalid, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
@@ -627,16 +670,19 @@ class AuthenticationTest {
         }
         assertEquals(HttpStatusCode.Unauthorized, res.status)
         assertEquals("Invalid signature", res.body())
+
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.get("stats:auth:login:error:$hour:total"))
     }
 
     @Test
     fun `login route - when signature is valid, it returns token`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
         }
@@ -680,137 +726,146 @@ class AuthenticationTest {
         val token = Tokens.verify(res.body<TokenResponse>().token)
         assertEquals(Certs.leafKey.public.fingerprint(), token.subject)
         assertEquals(Device.VERIFIED, token.getClaim("device").asString().toDevice())
+
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.get("stats:auth:login:success:$hour:total"))
     }
 
     @Test
-    fun `login route - when signature is valid and device is unverified, it returns token with unverified device`() = testApplication {
-        environment {
-            config = ApplicationConfig("application-test.conf")
-        }
-        application {
+    fun `login route - when signature is valid and device is unverified, it returns token with unverified device`() =
+        testApplication {
             val cache = FakeCache()
             val statsRepository = StatsRepository(cache)
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-        }
+            environment {
+                config = ApplicationConfig("application-test.conf")
+            }
+            application {
+                rootModule(statsRepository)
+                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            }
 
-        // Registration challenge
-        val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
-            .body<ChallengeResponse>().challenge.base64Decode()
+            // Registration challenge
+            val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
+                .body<ChallengeResponse>().challenge.base64Decode()
 
-        // Register
-        val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
-        val certificateChain = CertLists.selfSigned
-        jsonHttpClient.post("/v1/auth/register") {
-            contentType(ContentType.Application.Json)
-            setBody(
-                RegisterRequest(
-                    challenge = registrationChallenge.base64Encode(),
-                    signature = registrationSignature.base64Encode(),
-                    certificateChain = certificateChain.map { it.encoded.base64Encode() },
+            // Register
+            val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
+            val certificateChain = CertLists.selfSigned
+            jsonHttpClient.post("/v1/auth/register") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    RegisterRequest(
+                        challenge = registrationChallenge.base64Encode(),
+                        signature = registrationSignature.base64Encode(),
+                        certificateChain = certificateChain.map { it.encoded.base64Encode() },
+                    )
                 )
-            )
-        }
+            }
 
-        // Login challenge
-        val loginChallenge = jsonHttpClient.post("/v1/auth/challenge")
-            .body<ChallengeResponse>().challenge.base64Decode()
+            // Login challenge
+            val loginChallenge = jsonHttpClient.post("/v1/auth/challenge")
+                .body<ChallengeResponse>().challenge.base64Decode()
 
-        // Login
-        val loginSignature = Certs.leafKey.private.sign(loginChallenge)
-        val publicKey = Certs.leafKey.public
-        val res = jsonHttpClient.post("/v1/auth/login") {
-            contentType(ContentType.Application.Json)
-            setBody(
-                LoginRequest(
-                    challenge = loginChallenge.base64Encode(),
-                    signature = loginSignature.base64Encode(),
-                    publicKey = publicKey.encoded.base64Encode(),
+            // Login
+            val loginSignature = Certs.leafKey.private.sign(loginChallenge)
+            val publicKey = Certs.leafKey.public
+            val res = jsonHttpClient.post("/v1/auth/login") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    LoginRequest(
+                        challenge = loginChallenge.base64Encode(),
+                        signature = loginSignature.base64Encode(),
+                        publicKey = publicKey.encoded.base64Encode(),
+                    )
                 )
-            )
+            }
+            assertEquals(HttpStatusCode.OK, res.status)
+            val token = Tokens.verify(res.body<TokenResponse>().token)
+            assertEquals(Certs.leafKey.public.fingerprint(), token.subject)
+            assertEquals(Device.UNVERIFIED, token.getClaim("device").asString().toDevice())
+
+            val hour = CallDetails.formatCurrentHour()
+            assertEquals(1, statsRepository.get("stats:auth:login:success:$hour:total"))
         }
-        assertEquals(HttpStatusCode.OK, res.status)
-        val token = Tokens.verify(res.body<TokenResponse>().token)
-        assertEquals(Certs.leafKey.public.fingerprint(), token.subject)
-        assertEquals(Device.UNVERIFIED, token.getClaim("device").asString().toDevice())
-    }
 
     @Test
-    fun `login route - when signature is valid, it refreshes device expiration`() =
-        runTest {
-            testApplication(testScheduler) {
-                environment {
-                    config = ApplicationConfig("application-test.conf")
-                }
-                application {
-                    val cache = FakeCache(testScheduler.timeSource)
-                    val statsRepository = StatsRepository(cache)
-                    rootModule(statsRepository)
-                    authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-                }
-
-                // Registration challenge
-                val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
-                    .body<ChallengeResponse>().challenge.base64Decode()
-
-                // Register
-                val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
-                val certificateChain = CertLists.validFactoryProvisioned
-                jsonHttpClient.post("/v1/auth/register") {
-                    contentType(ContentType.Application.Json)
-                    setBody(
-                        RegisterRequest(
-                            challenge = registrationChallenge.base64Encode(),
-                            signature = registrationSignature.base64Encode(),
-                            certificateChain = certificateChain.map { it.encoded.base64Encode() },
-                        )
-                    )
-                }
-
-                // Advance time, so the device almost expires
-                advanceTimeBy(5.seconds)
-
-                // Login challenge
-                val loginChallenge = jsonHttpClient.post("/v1/auth/challenge")
-                    .body<ChallengeResponse>().challenge.base64Decode()
-
-                // Login
-                val loginSignature = Certs.leafKey.private.sign(loginChallenge)
-                val publicKey = Certs.leafKey.public
-                val res = jsonHttpClient.post("/v1/auth/login") {
-                    contentType(ContentType.Application.Json)
-                    setBody(
-                        LoginRequest(
-                            challenge = loginChallenge.base64Encode(),
-                            signature = loginSignature.base64Encode(),
-                            publicKey = publicKey.encoded.base64Encode(),
-                        )
-                    )
-                }
-                assertEquals(HttpStatusCode.OK, res.status)
-
-                // Advance time, so the device would expire if the expiration wasn't refreshed
-                advanceTimeBy(5.seconds)
-
-                // Login challenge
-                val loginChallenge2 = jsonHttpClient.post("/v1/auth/challenge")
-                    .body<ChallengeResponse>().challenge.base64Decode()
-
-                // Login
-                val loginSignature2 = Certs.leafKey.private.sign(loginChallenge2)
-                val res2 = jsonHttpClient.post("/v1/auth/login") {
-                    contentType(ContentType.Application.Json)
-                    setBody(
-                        LoginRequest(
-                            challenge = loginChallenge2.base64Encode(),
-                            signature = loginSignature2.base64Encode(),
-                            publicKey = publicKey.encoded.base64Encode(),
-                        )
-                    )
-                }
-                assertEquals(HttpStatusCode.OK, res2.status)
+    fun `login route - when signature is valid, it refreshes device expiration`() = runTest {
+        testApplication(testScheduler) {
+            val cache = FakeCache(testScheduler.timeSource)
+            val statsRepository = StatsRepository(cache)
+            environment {
+                config = ApplicationConfig("application-test.conf")
             }
+            application {
+                rootModule(statsRepository)
+                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            }
+
+            // Registration challenge
+            val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
+                .body<ChallengeResponse>().challenge.base64Decode()
+
+            // Register
+            val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
+            val certificateChain = CertLists.validFactoryProvisioned
+            jsonHttpClient.post("/v1/auth/register") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    RegisterRequest(
+                        challenge = registrationChallenge.base64Encode(),
+                        signature = registrationSignature.base64Encode(),
+                        certificateChain = certificateChain.map { it.encoded.base64Encode() },
+                    )
+                )
+            }
+
+            // Advance time, so the device almost expires
+            advanceTimeBy(5.seconds)
+
+            // Login challenge
+            val loginChallenge = jsonHttpClient.post("/v1/auth/challenge")
+                .body<ChallengeResponse>().challenge.base64Decode()
+
+            // Login
+            val loginSignature = Certs.leafKey.private.sign(loginChallenge)
+            val publicKey = Certs.leafKey.public
+            val res = jsonHttpClient.post("/v1/auth/login") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    LoginRequest(
+                        challenge = loginChallenge.base64Encode(),
+                        signature = loginSignature.base64Encode(),
+                        publicKey = publicKey.encoded.base64Encode(),
+                    )
+                )
+            }
+            assertEquals(HttpStatusCode.OK, res.status)
+
+            // Advance time, so the device would expire if the expiration wasn't refreshed
+            advanceTimeBy(5.seconds)
+
+            // Login challenge
+            val loginChallenge2 = jsonHttpClient.post("/v1/auth/challenge")
+                .body<ChallengeResponse>().challenge.base64Decode()
+
+            // Login
+            val loginSignature2 = Certs.leafKey.private.sign(loginChallenge2)
+            val res2 = jsonHttpClient.post("/v1/auth/login") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    LoginRequest(
+                        challenge = loginChallenge2.base64Encode(),
+                        signature = loginSignature2.base64Encode(),
+                        publicKey = publicKey.encoded.base64Encode(),
+                    )
+                )
+            }
+            assertEquals(HttpStatusCode.OK, res2.status)
+
+            val hour = CallDetails.formatCurrentHour()
+            assertEquals(2, statsRepository.get("stats:auth:login:success:$hour:total"))
         }
+    }
 
     @Test
     fun `status challenge success route - when the number exceeds threshold, it returns failure`() = testApplication {

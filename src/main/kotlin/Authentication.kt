@@ -163,7 +163,6 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 cache.set("challenge:$challengeCacheKey", "", challengeExpire)
                 val res = ChallengeResponse(challenge.base64Encode())
                 with(call.details) {
-                    // TODO Test auth challenge success stats
                     statsRepository.increase("stats:auth:challenge:success:$hour:total")
                 }
                 call.respond(res)
@@ -235,14 +234,12 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 when (res) {
                     is ErrorResponse -> {
                         with(call.details) {
-                            // TODO Test auth register error stats
                             statsRepository.increase("stats:auth:register:error:$hour:total")
                         }
                         call.respond(HttpStatusCode.Unauthorized, res.message)
                     }
                     is TokenResponse -> {
                         with(call.details) {
-                            // TODO Test auth register success stats
                             statsRepository.increase("stats:auth:register:success:$hour:total")
                         }
                         call.respond(res)
@@ -287,7 +284,6 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 when (res) {
                     is ErrorResponse -> {
                         with(call.details) {
-                            // TODO Test auth login error stats
                             statsRepository.increase("stats:auth:login:error:$hour:total")
                         }
                         call.respond(HttpStatusCode.Unauthorized, res.message)
@@ -295,7 +291,6 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
 
                     is TokenResponse -> {
                         with(call.details) {
-                            // TODO Test auth login success stats
                             statsRepository.increase("stats:auth:login:success:$hour:total")
                         }
                         call.respond(res)
