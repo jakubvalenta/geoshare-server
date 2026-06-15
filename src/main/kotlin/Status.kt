@@ -17,6 +17,7 @@ fun Application.statusModule(cache: Cache, statsRepository: StatsRepository) {
             authenticate("status") {
                 rateLimit {
                     head("/cache") {
+                        // Check that the connection to the Redis cache works
                         if (cache.ping()) {
                             call.respond(HttpStatusCode.OK)
                         } else {
@@ -24,10 +25,10 @@ fun Application.statusModule(cache: Cache, statsRepository: StatsRepository) {
                         }
                     }
                     head("/rate-limit/hour") {
-                        // TODO Test rate limit status
+                        // Check that there hasn't been too many rate limited requests
                         with(call.details) {
                             val num = statsRepository.get("stats:rate-limit:$hour:total")
-                            if (num > 0) {
+                            if (num > 5) {
                                 call.respond(StatusFailed, num)
                             } else {
                                 call.respond(num)

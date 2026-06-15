@@ -221,6 +221,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                 }
             }
         }
+
         route("/v1/status/google-maps") {
             authenticate("status") {
                 rateLimit {

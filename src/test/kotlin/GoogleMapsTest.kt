@@ -870,7 +870,7 @@ class GoogleMapsTest {
     }
 
     @Test
-    fun `status connection route - when called with correct token and upstream returns expected location with tiny delta, it returns 200`() =
+    fun `status connection route - when upstream returns expected location with tiny delta, it returns 200`() =
         testApplication {
             val cache = FakeCache()
             val statsRepository = StatsRepository(cache)
@@ -916,7 +916,7 @@ class GoogleMapsTest {
         }
 
     @Test
-    fun `status connection route - when called with correct token and upstream returns unexpected location, it returns failure`() =
+    fun `status connection route - when upstream returns unexpected location, it returns failure`() =
         testApplication {
             val cache = FakeCache()
             val statsRepository = StatsRepository(cache)
@@ -963,7 +963,7 @@ class GoogleMapsTest {
         }
 
     @Test
-    fun `status connection route - when called with correct token and upstream returns no results, it returns 500`() =
+    fun `status connection route - when upstream returns no results, it returns 500`() =
         testApplication {
             val cache = FakeCache()
             val statsRepository = StatsRepository(cache)
@@ -1008,7 +1008,7 @@ class GoogleMapsTest {
         }
 
     @Test
-    fun `status connection route - when called with correct token and upstream throws unauthorized, it returns 500`() =
+    fun `status connection route - when upstream throws unauthorized, it returns 500`() =
         testApplication {
             val cache = FakeCache()
             val statsRepository = StatsRepository(cache)
@@ -1044,7 +1044,7 @@ class GoogleMapsTest {
         }
 
     @Test
-    fun `status connection route - when called with correct token and upstream throws not found, it returns 404`() =
+    fun `status connection route - when upstream throws not found, it returns 404`() =
         testApplication {
             val cache = FakeCache()
             val statsRepository = StatsRepository(cache)
@@ -1079,7 +1079,7 @@ class GoogleMapsTest {
         }
 
     @Test
-    fun `status connection route - when called with correct token and upstream throws exception, it returns 500`() =
+    fun `status connection route - when upstream throws exception, it returns 500`() =
         testApplication {
             val cache = FakeCache()
             val statsRepository = StatsRepository(cache)
@@ -1202,6 +1202,7 @@ class GoogleMapsTest {
         assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
     }
+
     @Test
     fun `status exception route - when the number of failed calls exceeds threshold, it returns failure`() = testApplication {
         val cache = FakeCache()
