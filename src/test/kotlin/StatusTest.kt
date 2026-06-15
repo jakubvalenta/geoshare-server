@@ -37,7 +37,7 @@ class StatusTest {
             statusModule(cache, statsRepository)
         }
 
-        val res = client.head("/v1/status/cache") {
+        val res = client.head("/v1/status/cache/connection") {
             headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
         }
         assertEquals(HttpStatusCode.OK, res.status)
@@ -92,7 +92,7 @@ class StatusTest {
             statusModule(cache, statsRepository)
         }
 
-        val res = client.head("/v1/status/cache") {
+        val res = client.head("/v1/status/cache/connection") {
             headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
         }
         assertEquals(StatusFailed, res.status)
@@ -116,7 +116,7 @@ class StatusTest {
             statusModule(cache, statsRepository)
         }
 
-        val res = client.head("/v1/status/cache") {
+        val res = client.head("/v1/status/cache/connection") {
             headers[HttpHeaders.Authorization] = "Bearer spam"
         }
         assertEquals(HttpStatusCode.Unauthorized, res.status)

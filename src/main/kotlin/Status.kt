@@ -16,7 +16,7 @@ fun Application.statusModule(cache: Cache, statsRepository: StatsRepository) {
         route("/v1/status") {
             authenticate("status") {
                 rateLimit {
-                    head("/cache") {
+                    head("/cache/connection") {
                         // Check that the connection to the Redis cache works
                         if (cache.ping()) {
                             call.respond(HttpStatusCode.OK)
