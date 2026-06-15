@@ -17,7 +17,7 @@ import net.geoshare_app.lib.UpstreamUnknownException
 import net.geoshare_app.lib.ipToRateLimitBlock
 import net.geoshare_app.lib.propertyAsDuration
 import net.geoshare_app.lib.propertyAsInt
-import net.geoshare_app.lib.stats
+import net.geoshare_app.lib.details
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
@@ -79,7 +79,7 @@ fun Application.rootModule(statsRepository: StatsRepository) {
         }
         status(HttpStatusCode.TooManyRequests) { call, status ->
             // TODO Test rate limit stats
-            with(call.stats) {
+            with(call.details) {
                 statsRepository.hashIncrease("stats:rate-limit:$hour:by-endpoint", endpoint)
                 statsRepository.hashIncrease("stats:rate-limit:$hour:by-ip", ip)
                 statsRepository.hashIncrease("stats:rate-limit:$hour:by-subject", subject)

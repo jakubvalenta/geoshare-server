@@ -8,7 +8,7 @@ import io.ktor.server.request.path
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class CallStats(private val call: ApplicationCall) {
+class CallDetails(private val call: ApplicationCall) {
     val hour: String by lazy {
         LocalDateTime.now().format(hourFormat)
     }
@@ -42,4 +42,4 @@ class CallStats(private val call: ApplicationCall) {
     }
 }
 
-val ApplicationCall.stats get() = CallStats(this)
+val ApplicationCall.details get() = CallDetails(this)

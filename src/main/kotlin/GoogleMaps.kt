@@ -38,7 +38,7 @@ import net.geoshare_app.lib.UpstreamUnknownException
 import net.geoshare_app.lib.equalsDelta
 import net.geoshare_app.lib.propertyAsBoolean
 import net.geoshare_app.lib.propertyAsString
-import net.geoshare_app.lib.stats
+import net.geoshare_app.lib.details
 import net.geoshare_app.lib.toScale
 import kotlin.random.Random
 
@@ -124,14 +124,14 @@ class GoogleMapsClient(
                 }
                 val body = res.body<T>()
                 // TODO Test Google Maps stats
-                with(call.stats) {
+                with(call.details) {
                     statsRepository.hashIncrease("stats:google-maps:success:$hour:by-endpoint", endpoint)
                     statsRepository.increase("stats:google-maps:success:$hour:total")
                 }
                 body
             } catch (tr: ClientRequestException) {
                 // TODO Test Google Maps stats
-                with(call.stats) {
+                with(call.details) {
                     statsRepository.hashIncrease(
                         "stats:google-maps:exception:client-request:$hour:by-code",
                         tr.response.status.value.toString()
@@ -146,14 +146,14 @@ class GoogleMapsClient(
                 }
             } catch (tr: JsonConvertException) {
                 // TODO Test Google Maps stats
-                with(call.stats) {
+                with(call.details) {
                     statsRepository.increase("stats:google-maps:exception:json-convert:$hour:total")
                     statsRepository.increase("stats:google-maps:exception:all:$hour:total")
                 }
                 throw UpstreamNotFoundException(tr)
             } catch (tr: Exception) {
                 // TODO Test Google Maps stats
-                with(call.stats) {
+                with(call.details) {
                     statsRepository.increase("stats:google-maps:exception:unknown:$hour:total")
                     statsRepository.increase("stats:google-maps:exception:all:$hour:total")
                 }
@@ -234,7 +234,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                     }
                     head("/geocode/address/success/verified/hour") {
                         // TODO Test
-                        with(call.stats) {
+                        with(call.details) {
                             val num = statsRepository.hashGet(
                                 "stats:google-maps:success:$hour:by-endpoint",
                                 "google-maps-verified-address"
@@ -248,7 +248,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                     }
                     head("/geocode/places/success/verified/hour") {
                         // TODO Test
-                        with(call.stats) {
+                        with(call.details) {
                             val num = statsRepository.hashGet(
                                 "stats:google-maps:success:$hour:by-endpoint",
                                 "google-maps-verified-places"
@@ -262,7 +262,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                     }
                     head("/geocode/address/success/unverified/hour") {
                         // TODO Test
-                        with(call.stats) {
+                        with(call.details) {
                             val num = statsRepository.hashGet(
                                 "stats:google-maps:success:$hour:by-endpoint",
                                 "google-maps-unverified-address"
@@ -276,7 +276,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                     }
                     head("/geocode/places/success/unverified/hour") {
                         // TODO Test
-                        with(call.stats) {
+                        with(call.details) {
                             val num = statsRepository.hashGet(
                                 "stats:google-maps:success:$hour:by-endpoint",
                                 "google-maps-unverified-places"
@@ -290,7 +290,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                     }
                     head("/exception/hour") {
                         // TODO Test
-                        with(call.stats) {
+                        with(call.details) {
                             val num = statsRepository.get("stats:google-maps:exception:all:$hour:total")
                             if (num > 100) {
                                 call.respond(StatusFailed, num)

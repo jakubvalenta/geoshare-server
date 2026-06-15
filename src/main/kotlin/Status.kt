@@ -9,7 +9,7 @@ import io.ktor.server.routing.head
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import net.geoshare_app.lib.StatusFailed
-import net.geoshare_app.lib.stats
+import net.geoshare_app.lib.details
 
 fun Application.statusModule(cache: Cache, statsRepository: StatsRepository) {
     routing {
@@ -24,7 +24,7 @@ fun Application.statusModule(cache: Cache, statsRepository: StatsRepository) {
                         }
                     }
                     head("/rate-limit/hour") {
-                        with(call.stats) {
+                        with(call.details) {
                             val num = statsRepository.get("stats:rate-limit:$hour:total")
                             if (num > 0) {
                                 call.respond(StatusFailed, num)
