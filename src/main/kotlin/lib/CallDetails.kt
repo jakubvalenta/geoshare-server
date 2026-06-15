@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter
 
 class CallDetails(private val call: ApplicationCall) {
     val hour: String by lazy {
-        LocalDateTime.now().format(hourFormat)
+        formatCurrentHour()
     }
     val path by lazy {
         call.request.path()
@@ -37,8 +37,11 @@ class CallDetails(private val call: ApplicationCall) {
         call.principal<JWTPrincipal>()?.subject ?: "unknown"
     }
 
-    private companion object {
+    companion object {
         private val hourFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH")
+
+        fun formatCurrentHour(): String =
+            LocalDateTime.now().format(hourFormat)
     }
 }
 

@@ -11,6 +11,9 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.testing.testApplication
+import net.geoshare_app.lib.CallDetails
+import net.geoshare_app.lib.fingerprint
+import net.geoshare_app.testing.Certs
 import net.geoshare_app.testing.FakeCache
 import net.geoshare_app.testing.TestCertificateVerification
 import net.geoshare_app.testing.Tokens
@@ -40,12 +43,12 @@ class ApplicationTest {
 
     @Test
     fun `rate limited route based on ip - when called too fast from an unknown ip, it returns 429`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             googleMapsModule(this@ApplicationTest.engine, statsRepository)
@@ -66,16 +69,21 @@ class ApplicationTest {
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.TooManyRequests, res.status)
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-endpoint", "auth-challenge"))
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", "unknown"))
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-subject", "unknown"))
+        assertEquals(1, statsRepository.get("stats:rate-limit:$hour:total"))
     }
 
     @Test
     fun `rate limited route based on ip - when called too fast from ipv4 addresses with the same prefix, it returns 429`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             googleMapsModule(this@ApplicationTest.engine, statsRepository)
@@ -96,16 +104,22 @@ class ApplicationTest {
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.TooManyRequests, res.status)
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-endpoint", "auth-challenge"))
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", "203.0.113.1"))
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", "203.0.113.2"))
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-subject", "unknown"))
+        assertEquals(1, statsRepository.get("stats:rate-limit:$hour:total"))
     }
 
     @Test
     fun `rate limited route based on ip - when called too fast from ipv6 addresses with the same prefix, it returns 429`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             googleMapsModule(this@ApplicationTest.engine, statsRepository)
@@ -126,16 +140,22 @@ class ApplicationTest {
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.TooManyRequests, res.status)
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-endpoint", "auth-challenge"))
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", "2001:db8:dead:beef::1"))
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", "2001:db8:dead:beef::2"))
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-subject", "unknown"))
+        assertEquals(1, statsRepository.get("stats:rate-limit:$hour:total"))
     }
 
     @Test
     fun `rate limited route based on ip - when called too fast from ipv4 addresses with different prefix, it returns 200`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             googleMapsModule(this@ApplicationTest.engine, statsRepository)
@@ -156,16 +176,22 @@ class ApplicationTest {
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.OK, res.status)
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-endpoint", "auth-challenge"))
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", "192.0.2.1"))
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", "192.0.3.1"))
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-subject", "unknown"))
+        assertEquals(0, statsRepository.get("stats:rate-limit:$hour:total"))
     }
 
     @Test
     fun `rate limited route based on ip - when called too fast from ipv6 addresses with different prefix, it returns 200`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             googleMapsModule(this@ApplicationTest.engine, statsRepository)
@@ -186,16 +212,22 @@ class ApplicationTest {
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.OK, res.status)
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-endpoint", "auth-challenge"))
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", "2001:db8:dead:beef::1"))
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", "2001:db8:dead::1"))
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-subject", "unknown"))
+        assertEquals(0, statsRepository.get("stats:rate-limit:$hour:total"))
     }
 
     @Test
     fun `rate limited route based on jwt subject - when called too fast with the same token of an unverified device, it returns 429`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             googleMapsModule(this@ApplicationTest.engine, statsRepository)
@@ -217,16 +249,21 @@ class ApplicationTest {
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.TooManyRequests, res.status)
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-endpoint", "google-maps-unverified-address"))
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", "203.0.113.1"))
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-subject", Certs.leafKey.public.fingerprint()))
+        assertEquals(1, statsRepository.get("stats:rate-limit:$hour:total"))
     }
 
     @Test
     fun `rate limited route based on jwt subject - when called too fast with the same token of a verified device, it returns 429`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             googleMapsModule(this@ApplicationTest.engine, statsRepository)
@@ -248,16 +285,21 @@ class ApplicationTest {
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.TooManyRequests, res.status)
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-endpoint", "google-maps-verified-address"))
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", "203.0.113.1"))
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-subject", Certs.leafKey.public.fingerprint()))
+        assertEquals(1, statsRepository.get("stats:rate-limit:$hour:total"))
     }
 
     @Test
     fun `rate limited route based on jwt subject - when called too fast with different tokens, it returns 200`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
         application {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
             rootModule(statsRepository)
             authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
             googleMapsModule(this@ApplicationTest.engine, statsRepository)
@@ -279,5 +321,11 @@ class ApplicationTest {
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.OK, res.status)
+        val hour = CallDetails.formatCurrentHour()
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-endpoint", "google-maps-verified-address"))
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", "203.0.113.1"))
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-subject", Certs.leafKey.public.fingerprint()))
+        assertEquals(0, statsRepository.hashGet("stats:rate-limit:$hour:by-subject", "test-public-key-fingerprint-2"))
+        assertEquals(0, statsRepository.get("stats:rate-limit:$hour:total"))
     }
 }

@@ -34,8 +34,13 @@ class FakeCache(private val timeSource: TimeSource = TimeSource.Monotonic) : Cac
 
     override suspend fun get(key: String) =
         map[key]?.let { item ->
-            (item as StringItem).value
-                .takeIf { item.timeMark == null || item.expire == null || item.timeMark.elapsedNow() < item.expire }
+            val timeMark = item.timeMark
+            val expire = item.expire
+            if (timeMark == null || expire == null || timeMark.elapsedNow() < expire) {
+                item.value.toString()
+            } else {
+                null
+            }
         }
 
     override suspend fun hashGet(key: String, field: String): String? =
@@ -68,7 +73,7 @@ class FakeCache(private val timeSource: TimeSource = TimeSource.Monotonic) : Cac
                 hash[field] = 1
             }
         } else {
-            map[key] = HashItem(mutableMapOf(), timeSource.markNow(), expire)
+            map[key] = HashItem(mutableMapOf(field to 1), timeSource.markNow(), expire)
         }
     }
 

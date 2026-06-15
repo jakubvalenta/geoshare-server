@@ -21,7 +21,7 @@ object Tokens {
 
     val valid2: String by lazy {
         JWT.create()
-            .withSubject("2")
+            .withSubject("test-public-key-fingerprint-2")
             .withClaim("device", Device.VERIFIED.name)
             .withExpiresAt(Date(System.currentTimeMillis() + 1.minutes.inWholeMilliseconds))
             .sign(Algorithm.HMAC256(JWT_SECRET))

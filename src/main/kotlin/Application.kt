@@ -78,7 +78,6 @@ fun Application.rootModule(statsRepository: StatsRepository) {
             call.respondText(text = "Upstream request failed", status = HttpStatusCode.InternalServerError)
         }
         status(HttpStatusCode.TooManyRequests) { call, status ->
-            // TODO Test rate limit stats
             with(call.details) {
                 statsRepository.hashIncrease("stats:rate-limit:$hour:by-endpoint", endpoint)
                 statsRepository.hashIncrease("stats:rate-limit:$hour:by-ip", ip)

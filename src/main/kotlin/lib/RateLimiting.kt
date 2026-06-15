@@ -20,7 +20,7 @@ private val simpleIPv4Regex = Regex("""^[\d.]+$""")
  * Examples:
  * ```
  * ipToRateLimitBlock("203.0.113.47") // "203.0.113.0"
- * ipToRateLimitBlock("2001:db8:dead:beef:abc::1") // "2001:db8:dead:beef"
+ * ipToRateLimitBlock("2001:db8:dead:beef:abc::1") // "2001:db8:dead:beef:0:0:0:0"
  * ```
  */
 fun ipToRateLimitBlock(ip: String): String {
