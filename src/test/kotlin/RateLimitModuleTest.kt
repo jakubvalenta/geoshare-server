@@ -25,9 +25,10 @@ import kotlin.test.assertEquals
 
 class RateLimitModuleTest {
     private val query = "Cherbourg, France"
+    private val encodedQuery = "Cherbourg,%20France"
     private val engine = MockEngine { request ->
         when (request.url.toString()) {
-            "https://geocode.googleapis.com/v4/geocode/address/Cherbourg,%20France" -> respond(
+            "https://geocode.googleapis.com/v4/geocode/address/$encodedQuery" -> respond(
                 // language=Json
                 """{"results":[]}""",
                 headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),

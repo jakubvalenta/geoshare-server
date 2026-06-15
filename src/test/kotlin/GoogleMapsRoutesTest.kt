@@ -34,6 +34,7 @@ class GoogleMapsRoutesTest {
     private val apiKey = "test-api-key"
     private val placeId = "foo"
     private val query = "Cherbourg, France"
+    private val encodedQuery = "Cherbourg,%20France"
     private val engine = MockEngine { request ->
         if (request.headers["X-Goog-Api-Key"] != apiKey) {
             return@MockEngine respondError(HttpStatusCode.Unauthorized)
@@ -49,7 +50,7 @@ class GoogleMapsRoutesTest {
                 throw NotImplementedError()
         }
         when (request.url.toString()) {
-            "https://geocode.googleapis.com/v4/geocode/address/Cherbourg,%20France" -> respond(
+            "https://geocode.googleapis.com/v4/geocode/address/$encodedQuery" -> respond(
                 // language=Json
                 """
                     {
@@ -157,7 +158,7 @@ class GoogleMapsRoutesTest {
                     accept(ContentType.Application.Json)
                 }
             assertEquals(HttpStatusCode.Found, res.status)
-            assertEquals("/v1/google-maps/$device/geocode/address/$query", res.headers[HttpHeaders.Location])
+            assertEquals("/v1/google-maps/$device/geocode/address/$encodedQuery", res.headers[HttpHeaders.Location])
         }
     }
 

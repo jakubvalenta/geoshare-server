@@ -11,6 +11,7 @@ import io.ktor.client.request.headers
 import io.ktor.client.request.url
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.appendPathSegments
+import io.ktor.http.encodeURLPathPart
 import io.ktor.resources.Resource
 import io.ktor.serialization.JsonConvertException
 import io.ktor.serialization.kotlinx.json.json
@@ -33,10 +34,10 @@ import net.geoshare_app.lib.StatusFailed
 import net.geoshare_app.lib.UpstreamNotFoundException
 import net.geoshare_app.lib.UpstreamUnauthorizedException
 import net.geoshare_app.lib.UpstreamUnknownException
+import net.geoshare_app.lib.details
 import net.geoshare_app.lib.equalsDelta
 import net.geoshare_app.lib.propertyAsBoolean
 import net.geoshare_app.lib.propertyAsString
-import net.geoshare_app.lib.details
 import net.geoshare_app.lib.toDevice
 import net.geoshare_app.lib.toScale
 import kotlin.random.Random
@@ -179,16 +180,18 @@ fun Route.googleMapsRoutes(engine: HttpClientEngine = CIO.create(), statsReposit
         authenticate("dispatch") {
             rateLimit {
                 get<AddressResource> { address ->
+                    val encodedQuery = address.query.encodeURLPathPart()
                     when (call.authentication.principal<JWTPrincipal>()?.toDevice()) {
-                        Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/address/${address.query}")
-                        Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/address/${address.query}")
+                        Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/address/$encodedQuery")
+                        Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/address/$encodedQuery")
                         null -> call.respond(HttpStatusCode.Unauthorized)
                     }
                 }
                 get<PlaceResource> { place ->
+                    val encodedPlaceId = place.id.encodeURLPathPart()
                     when (call.authentication.principal<JWTPrincipal>()?.toDevice()) {
-                        Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/places/${place.id}")
-                        Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/places/${place.id}")
+                        Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/places/$encodedPlaceId")
+                        Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/places/$encodedPlaceId")
                         null -> call.respond(HttpStatusCode.Unauthorized)
                     }
                 }
