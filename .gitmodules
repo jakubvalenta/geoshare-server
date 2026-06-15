@@ -1,4 +1,5 @@
 [submodule "libs/keyattestation"]
 	path = libs/keyattestation
-	url = https://github.com/android/keyattestation
+	url = https://github.com/jakubvalenta/keyattestation
+	branch = verified-boot-key
 	ignore = untracked
