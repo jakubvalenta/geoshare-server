@@ -96,7 +96,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                     JWTPrincipal(credential.payload)
                 } else {
                     with(this.details) {
-                        // TODO Test
+                        // TODO Test auth unauthorized dispatch stats
                         statsRepository.hashIncrease("stats:auth:unauthorized:$hour:by-endpoint", endpoint)
                         statsRepository.increase("stats:auth:unauthorized:$hour:total")
                     }
@@ -114,7 +114,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                     JWTPrincipal(credential.payload)
                 } else {
                     with(this.details) {
-                        // TODO Test
+                        // TODO Test auth unauthorized unverified stats
                         statsRepository.hashIncrease("stats:auth:unauthorized:$hour:by-endpoint", endpoint)
                         statsRepository.increase("stats:auth:unauthorized:$hour:total")
                     }
@@ -132,7 +132,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                     JWTPrincipal(credential.payload)
                 } else {
                     with(this.details) {
-                        // TODO Test
+                        // TODO Test auth unauthorized verified stats
                         statsRepository.hashIncrease("stats:auth:unauthorized:$hour:by-endpoint", endpoint)
                         statsRepository.increase("stats:auth:unauthorized:$hour:total")
                     }
@@ -146,7 +146,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                     true
                 } else {
                     with(this.details) {
-                        // TODO Test
+                        // TODO Test auth unauthorized status stats
                         statsRepository.hashIncrease("stats:auth:unauthorized:$hour:by-endpoint", endpoint)
                         statsRepository.increase("stats:auth:unauthorized:$hour:total")
                     }
@@ -163,7 +163,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 cache.set("challenge:$challengeCacheKey", "", challengeExpire)
                 val res = ChallengeResponse(challenge.base64Encode())
                 with(call.details) {
-                    // TODO Test
+                    // TODO Test auth challenge success stats
                     statsRepository.increase("stats:auth:challenge:success:$hour:total")
                 }
                 call.respond(res)
@@ -235,14 +235,14 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 when (res) {
                     is ErrorResponse -> {
                         with(call.details) {
-                            // TODO Test
+                            // TODO Test auth register error stats
                             statsRepository.increase("stats:auth:register:error:$hour:total")
                         }
                         call.respond(HttpStatusCode.Unauthorized, res.message)
                     }
                     is TokenResponse -> {
                         with(call.details) {
-                            // TODO Test
+                            // TODO Test auth register success stats
                             statsRepository.increase("stats:auth:register:success:$hour:total")
                         }
                         call.respond(res)
@@ -287,7 +287,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 when (res) {
                     is ErrorResponse -> {
                         with(call.details) {
-                            // TODO Test
+                            // TODO Test auth login error stats
                             statsRepository.increase("stats:auth:login:error:$hour:total")
                         }
                         call.respond(HttpStatusCode.Unauthorized, res.message)
@@ -295,7 +295,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
 
                     is TokenResponse -> {
                         with(call.details) {
-                            // TODO Test
+                            // TODO Test auth login success stats
                             statsRepository.increase("stats:auth:login:success:$hour:total")
                         }
                         call.respond(res)
@@ -308,7 +308,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
             authenticate("status") {
                 rateLimit {
                     head("/challenge/success/hour") {
-                        // TODO Test
+                        // TODO Test auth challenge success status
                         with(call.details) {
                             val num = statsRepository.get("stats:auth:challenge:success:$hour:total")
                             if (num > 100) {
@@ -319,7 +319,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                         }
                     }
                     head("/login/success/hour") {
-                        // TODO Test
+                        // TODO Test auth login success status
                         with(call.details) {
                             val num = statsRepository.get("stats:auth:login:success:$hour:total")
                             if (num > 100) {
@@ -330,7 +330,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                         }
                     }
                     head("/login/error/hour") {
-                        // TODO Test
+                        // TODO Test auth login error status
                         with(call.details) {
                             val num = statsRepository.get("stats:auth:login:error:$hour:total")
                             if (num > 10) {
@@ -341,7 +341,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                         }
                     }
                     head("/register/success/hour") {
-                        // TODO Test
+                        // TODO Test auth register success status
                         with(call.details) {
                             val num = statsRepository.get("stats:auth:register:success:$hour:total")
                             if (num > 100) {
@@ -352,7 +352,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                         }
                     }
                     head("/register/error/hour") {
-                        // TODO Test
+                        // TODO Test auth register error status
                         with(call.details) {
                             val num = statsRepository.get("stats:auth:register:error:$hour:total")
                             if (num > 10) {
@@ -363,7 +363,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                         }
                     }
                     head("/unauthorized/hour") {
-                        // TODO Test
+                        // TODO Test auth unauthorized status
                         with(call.details) {
                             val num = statsRepository.get("stats:auth:unauthorized:$hour:total")
                             if (num > 100) {

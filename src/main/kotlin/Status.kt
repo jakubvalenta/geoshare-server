@@ -24,6 +24,7 @@ fun Application.statusModule(cache: Cache, statsRepository: StatsRepository) {
                         }
                     }
                     head("/rate-limit/hour") {
+                        // TODO Test rate limit status
                         with(call.details) {
                             val num = statsRepository.get("stats:rate-limit:$hour:total")
                             if (num > 0) {

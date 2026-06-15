@@ -26,7 +26,7 @@ class CallDetails(private val call: ApplicationCall) {
             path == "/v1/auth/challenge" -> "auth-challenge"
             path == "/v1/auth/login" -> "auth-login"
             path == "/v1/auth/register" -> "auth-register"
-            path.startsWith("/v1/auth/status") -> "status"
+            path.startsWith("/v1/status") -> "status"
             else -> "unknown"
         }
     }

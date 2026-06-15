@@ -123,14 +123,12 @@ class GoogleMapsClient(
                     }
                 }
                 val body = res.body<T>()
-                // TODO Test Google Maps stats
                 with(call.details) {
                     statsRepository.hashIncrease("stats:google-maps:success:$hour:by-endpoint", endpoint)
                     statsRepository.increase("stats:google-maps:success:$hour:total")
                 }
                 body
             } catch (tr: ClientRequestException) {
-                // TODO Test Google Maps stats
                 with(call.details) {
                     statsRepository.hashIncrease(
                         "stats:google-maps:exception:client-request:$hour:by-code",
@@ -145,14 +143,12 @@ class GoogleMapsClient(
                     else -> throw UpstreamUnknownException(tr)
                 }
             } catch (tr: JsonConvertException) {
-                // TODO Test Google Maps stats
                 with(call.details) {
                     statsRepository.increase("stats:google-maps:exception:json-convert:$hour:total")
                     statsRepository.increase("stats:google-maps:exception:all:$hour:total")
                 }
                 throw UpstreamNotFoundException(tr)
             } catch (tr: Exception) {
-                // TODO Test Google Maps stats
                 with(call.details) {
                     statsRepository.increase("stats:google-maps:exception:unknown:$hour:total")
                     statsRepository.increase("stats:google-maps:exception:all:$hour:total")
@@ -224,7 +220,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
             authenticate("status") {
                 rateLimit {
                     head("/connection") {
-                        // TODO Test
+                        // TODO Test Google Maps connection status
                         val res = googleMapsClient.callGeocodeAddressApi(call, "Lumen Field")
                         if (res.results.firstOrNull()?.location != GoogleMapsLocation(47.5951518, -122.3316394)) {
                             call.respond(StatusFailed, "Unexpected location")
@@ -233,7 +229,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                         }
                     }
                     head("/geocode/address/success/verified/hour") {
-                        // TODO Test
+                        // TODO Test Google Maps Address success verified status
                         with(call.details) {
                             val num = statsRepository.hashGet(
                                 "stats:google-maps:success:$hour:by-endpoint",
@@ -247,7 +243,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                         }
                     }
                     head("/geocode/places/success/verified/hour") {
-                        // TODO Test
+                        // TODO Test Google Maps Places success verified status
                         with(call.details) {
                             val num = statsRepository.hashGet(
                                 "stats:google-maps:success:$hour:by-endpoint",
@@ -261,7 +257,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                         }
                     }
                     head("/geocode/address/success/unverified/hour") {
-                        // TODO Test
+                        // TODO Test Google Maps Address success unverified status
                         with(call.details) {
                             val num = statsRepository.hashGet(
                                 "stats:google-maps:success:$hour:by-endpoint",
@@ -275,7 +271,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                         }
                     }
                     head("/geocode/places/success/unverified/hour") {
-                        // TODO Test
+                        // TODO Test Google Maps Places success unverified status
                         with(call.details) {
                             val num = statsRepository.hashGet(
                                 "stats:google-maps:success:$hour:by-endpoint",
@@ -289,7 +285,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                         }
                     }
                     head("/exception/hour") {
-                        // TODO Test
+                        // TODO Test Google Maps exception status
                         with(call.details) {
                             val num = statsRepository.get("stats:google-maps:exception:all:$hour:total")
                             if (num > 100) {
