@@ -8,20 +8,24 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.config.mergeWith
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import net.geoshare_app.lib.CallDetails
+import net.geoshare_app.lib.Device
 import net.geoshare_app.lib.StatusFailed
 import net.geoshare_app.lib.base64Decode
 import net.geoshare_app.lib.base64Encode
 import net.geoshare_app.lib.fingerprint
 import net.geoshare_app.lib.sha256Hex
 import net.geoshare_app.lib.sign
+import net.geoshare_app.lib.toDevice
 import net.geoshare_app.testing.CertLists
 import net.geoshare_app.testing.Certs
 import net.geoshare_app.testing.FakeCache
@@ -33,17 +37,23 @@ import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class AuthenticationTest {
+class AuthenticationRoutesTest {
     @Test
     fun `challenge route - always returns challenge of 32 bytes`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         val res = jsonHttpClient.post("/v1/auth/challenge")
@@ -57,13 +67,19 @@ class AuthenticationTest {
     @Test
     fun `register route - when challenge is not found in cache, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // Register
@@ -90,13 +106,19 @@ class AuthenticationTest {
     @Test
     fun `register route - when challenge has been used, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // Registration challenge
@@ -143,13 +165,19 @@ class AuthenticationTest {
     fun `register route - when challenge expires, it returns 401`() = runTest {
         testApplication(testScheduler) {
             val cache = FakeCache(testScheduler.timeSource)
+            val certificateVerification = TestCertificateVerification(cache)
             val statsRepository = StatsRepository(cache)
             environment {
                 config = ApplicationConfig("application-test.conf")
             }
+            install(ContentNegotiation) { json() }
             application {
-                rootModule(statsRepository)
-                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+                authenticationModule(certificateVerification)
+                rateLimitModule()
+                statusPagesModule(statsRepository)
+            }
+            routing {
+                authenticationRoutes(cache, certificateVerification, statsRepository)
             }
 
             // Registration challenge
@@ -182,13 +210,19 @@ class AuthenticationTest {
     @Test
     fun `register route - when certificate chain is invalid, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // Registration challenge
@@ -218,13 +252,19 @@ class AuthenticationTest {
     @Test
     fun `register route - when signature is invalid, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // Registration challenge
@@ -255,13 +295,19 @@ class AuthenticationTest {
     fun `register route - when certificate has been revoked, it returns 401`() = runTest {
         testApplication {
             val cache = FakeCache(testScheduler.timeSource)
+            val certificateVerification = TestCertificateVerification(cache)
             val statsRepository = StatsRepository(cache)
             environment {
                 config = ApplicationConfig("application-test.conf")
             }
+            install(ContentNegotiation) { json() }
             application {
-                rootModule(statsRepository)
-                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+                authenticationModule(certificateVerification)
+                rateLimitModule()
+                statusPagesModule(statsRepository)
+            }
+            routing {
+                authenticationRoutes(cache, certificateVerification, statsRepository)
             }
 
             // Registration challenge
@@ -292,13 +338,19 @@ class AuthenticationTest {
     @Test
     fun `register route - when signature is valid, it returns token`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // Registration challenge
@@ -331,13 +383,19 @@ class AuthenticationTest {
     fun `register route - when signature is valid with self-signed key extension with unknown boot key, it returns token with unverified device`() =
         testApplication {
             val cache = FakeCache()
+            val certificateVerification = TestCertificateVerification(cache)
             val statsRepository = StatsRepository(cache)
             environment {
                 config = ApplicationConfig("application-test.conf")
             }
+            install(ContentNegotiation) { json() }
             application {
-                rootModule(statsRepository)
-                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+                authenticationModule(certificateVerification)
+                rateLimitModule()
+                statusPagesModule(statsRepository)
+            }
+            routing {
+                authenticationRoutes(cache, certificateVerification, statsRepository)
             }
 
             // Registration challenge
@@ -369,13 +427,19 @@ class AuthenticationTest {
     @Test
     fun `login route - when challenge is not found, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // Login
@@ -402,13 +466,19 @@ class AuthenticationTest {
     @Test
     fun `login route - when challenge has been used, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // Registration challenge
@@ -473,13 +543,19 @@ class AuthenticationTest {
     fun `login route - when challenge expires, it returns 401`() = runTest {
         testApplication(testScheduler) {
             val cache = FakeCache(testScheduler.timeSource)
+            val certificateVerification = TestCertificateVerification(cache)
             val statsRepository = StatsRepository(cache)
             environment {
                 config = ApplicationConfig("application-test.conf")
             }
+            install(ContentNegotiation) { json() }
             application {
-                rootModule(statsRepository)
-                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+                authenticationModule(certificateVerification)
+                rateLimitModule()
+                statusPagesModule(statsRepository)
+            }
+            routing {
+                authenticationRoutes(cache, certificateVerification, statsRepository)
             }
 
             // Registration challenge
@@ -530,13 +606,19 @@ class AuthenticationTest {
     @Test
     fun `login route - when device is not found, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // Login challenge
@@ -567,13 +649,19 @@ class AuthenticationTest {
     fun `login route - when device expires, it returns 401`() = runTest {
         testApplication(testScheduler) {
             val cache = FakeCache(testScheduler.timeSource)
+            val certificateVerification = TestCertificateVerification(cache)
             val statsRepository = StatsRepository(cache)
             environment {
                 config = ApplicationConfig("application-test.conf")
             }
+            install(ContentNegotiation) { json() }
             application {
-                rootModule(statsRepository)
-                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+                authenticationModule(certificateVerification)
+                rateLimitModule()
+                statusPagesModule(statsRepository)
+            }
+            routing {
+                authenticationRoutes(cache, certificateVerification, statsRepository)
             }
 
             // Registration challenge
@@ -624,13 +712,19 @@ class AuthenticationTest {
     @Test
     fun `login route - when signature is invalid, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // Registration challenge
@@ -678,13 +772,19 @@ class AuthenticationTest {
     @Test
     fun `login route - when signature is valid, it returns token`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // Registration challenge
@@ -735,13 +835,19 @@ class AuthenticationTest {
     fun `login route - when signature is valid and device is unverified, it returns token with unverified device`() =
         testApplication {
             val cache = FakeCache()
+            val certificateVerification = TestCertificateVerification(cache)
             val statsRepository = StatsRepository(cache)
             environment {
                 config = ApplicationConfig("application-test.conf")
             }
+            install(ContentNegotiation) { json() }
             application {
-                rootModule(statsRepository)
-                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+                authenticationModule(certificateVerification)
+                rateLimitModule()
+                statusPagesModule(statsRepository)
+            }
+            routing {
+                authenticationRoutes(cache, certificateVerification, statsRepository)
             }
 
             // Registration challenge
@@ -792,13 +898,19 @@ class AuthenticationTest {
     fun `login route - when signature is valid, it refreshes device expiration`() = runTest {
         testApplication(testScheduler) {
             val cache = FakeCache(testScheduler.timeSource)
+            val certificateVerification = TestCertificateVerification(cache)
             val statsRepository = StatsRepository(cache)
             environment {
                 config = ApplicationConfig("application-test.conf")
             }
+            install(ContentNegotiation) { json() }
             application {
-                rootModule(statsRepository)
-                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+                authenticationModule(certificateVerification)
+                rateLimitModule()
+                statusPagesModule(statsRepository)
+            }
+            routing {
+                authenticationRoutes(cache, certificateVerification, statsRepository)
             }
 
             // Registration challenge
@@ -870,6 +982,7 @@ class AuthenticationTest {
     @Test
     fun `status challenge success route - when the number exceeds threshold, it returns failure`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -879,9 +992,14 @@ class AuthenticationTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // When the number is low, it returns success
@@ -905,6 +1023,7 @@ class AuthenticationTest {
     @Test
     fun `status challenge success route - when called with incorrect token, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -914,10 +1033,14 @@ class AuthenticationTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            statusModule(cache, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         val res = client.head("/v1/status/auth/challenge/success/hour") {
@@ -935,6 +1058,7 @@ class AuthenticationTest {
     @Test
     fun `status login success route - when the number exceeds threshold, it returns failure`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -944,9 +1068,14 @@ class AuthenticationTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // When the number is low, it returns success
@@ -970,6 +1099,7 @@ class AuthenticationTest {
     @Test
     fun `status login error route - when called with incorrect token, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -979,10 +1109,14 @@ class AuthenticationTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            statusModule(cache, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         val res = client.head("/v1/status/auth/login/error/hour") {
@@ -1000,6 +1134,7 @@ class AuthenticationTest {
     @Test
     fun `status login error route - when the number exceeds threshold, it returns failure`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -1009,9 +1144,14 @@ class AuthenticationTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // When the number is low, it returns success
@@ -1035,6 +1175,7 @@ class AuthenticationTest {
     @Test
     fun `status login success route - when called with incorrect token, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -1044,10 +1185,14 @@ class AuthenticationTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            statusModule(cache, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         val res = client.head("/v1/status/auth/login/success/hour") {
@@ -1065,6 +1210,7 @@ class AuthenticationTest {
     @Test
     fun `status register success route - when the number exceeds threshold, it returns failure`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -1074,9 +1220,14 @@ class AuthenticationTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // When the number is low, it returns success
@@ -1100,6 +1251,7 @@ class AuthenticationTest {
     @Test
     fun `status register success route - when called with incorrect token, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -1109,10 +1261,14 @@ class AuthenticationTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            statusModule(cache, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         val res = client.head("/v1/status/auth/register/success/hour") {
@@ -1130,6 +1286,7 @@ class AuthenticationTest {
     @Test
     fun `status register error route - when the number exceeds threshold, it returns failure`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -1139,9 +1296,14 @@ class AuthenticationTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // When the number is low, it returns success
@@ -1165,6 +1327,7 @@ class AuthenticationTest {
     @Test
     fun `status register error route - when called with incorrect token, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -1174,10 +1337,14 @@ class AuthenticationTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            statusModule(cache, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         val res = client.head("/v1/status/auth/register/error/hour") {
@@ -1195,6 +1362,7 @@ class AuthenticationTest {
     @Test
     fun `status unauthorized route - when the number exceeds threshold, it returns failure`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -1204,9 +1372,14 @@ class AuthenticationTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         // When the number is low, it returns success
@@ -1230,6 +1403,7 @@ class AuthenticationTest {
     @Test
     fun `status unauthorized route - when called with incorrect token, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -1239,10 +1413,14 @@ class AuthenticationTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            statusModule(cache, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            authenticationRoutes(cache, certificateVerification, statsRepository)
         }
 
         val res = client.head("/v1/status/auth/unauthorized/hour") {

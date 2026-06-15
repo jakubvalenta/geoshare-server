@@ -3,7 +3,7 @@ package net.geoshare_app.testing
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.DecodedJWT
-import net.geoshare_app.Device
+import net.geoshare_app.lib.Device
 import net.geoshare_app.lib.fingerprint
 import java.util.Date
 import kotlin.time.Duration.Companion.minutes

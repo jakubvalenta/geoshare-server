@@ -11,9 +11,12 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.config.mergeWith
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.resources.Resources
 import io.ktor.server.testing.testApplication
 import net.geoshare_app.lib.CallDetails
 import net.geoshare_app.lib.StatusFailed
@@ -27,7 +30,7 @@ import java.net.SocketTimeoutException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class GoogleMapsTest {
+class GoogleMapsRoutesTest {
     private val apiKey = "test-api-key"
     private val placeId = "foo"
     private val query = "Cherbourg, France"
@@ -127,17 +130,26 @@ class GoogleMapsTest {
     @Test
     fun `geocode dispatch address route - when token has device, returns redirect`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client
                 .config { followRedirects = false }
                 .get("/v1/google-maps/geocode/address/$query") {
@@ -152,14 +164,20 @@ class GoogleMapsTest {
     @Test
     fun `geocode dispatch address route - when token does not have device, returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val token = Tokens.invalidMissingDevice
@@ -175,17 +193,26 @@ class GoogleMapsTest {
     @Test
     fun `geocode dispatch places route - when token has device, returns redirect`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client
                 .config { followRedirects = false }
                 .get("/v1/google-maps/geocode/places/$placeId") {
@@ -200,14 +227,20 @@ class GoogleMapsTest {
     @Test
     fun `geocode dispatch places route - when token does not have device, returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val token = Tokens.invalidMissingDevice
@@ -223,14 +256,20 @@ class GoogleMapsTest {
     @Test
     fun `geocode address route - when no token is passed, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
@@ -247,14 +286,20 @@ class GoogleMapsTest {
     @Test
     fun `geocode address route - when expired token is passed, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
@@ -274,6 +319,7 @@ class GoogleMapsTest {
     @Test
     fun `geocode address route - when google api key is incorrect, it returns 500`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf").mergeWith(
@@ -282,14 +328,22 @@ class GoogleMapsTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/address/$query") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -311,18 +365,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode address route - when upstream returns results, it returns 200`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository = statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/address/$query") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -331,13 +394,13 @@ class GoogleMapsTest {
             assertEquals(
                 // language=Json
                 """
-                {
-                    "results": [
-                        {"location": {"latitude": 50.123456, "longitude": -11.123456}},
-                        {"location": {"latitude": 9.0, "longitude": -120.0}}
-                    ]
-                }
-            """.trimIndent().replace("\n", "").replace(" ", ""),
+                    {
+                        "results": [
+                            {"location": {"latitude": 50.123456, "longitude": -11.123456}},
+                            {"location": {"latitude": 9.0, "longitude": -120.0}}
+                        ]
+                    }
+                """.trimIndent().replace("\n", "").replace(" ", ""),
                 res.bodyAsText(),
             )
 
@@ -350,18 +413,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode address route - when engine returns empty results, it returns 200`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/address/empty-results") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -382,18 +454,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode address route - when google maps api returns empty object, it returns 404`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/address/empty-object") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -410,18 +491,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode address route - when google maps api returns invalid response, it returns 404`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/address/invalid") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -438,18 +528,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode address route - when google maps api throws bad request, it returns 404`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/address/bad-request") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -470,18 +569,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode address route - when google maps api throws not found, it returns 404`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/address/not-found") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -502,18 +610,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode address route - when google maps api throws too many requests, it returns 500`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/address/too-many-requests") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -535,18 +652,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode address route - when google maps api throws unauthorized, it returns 500`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/address/unauthorized") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -568,18 +694,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode address route - when google maps api throws exception, it return 500`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/address/exception") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -597,14 +732,20 @@ class GoogleMapsTest {
     @Test
     fun `geocode address unverified route - when called too fast, it returns 429`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val device = "unverified"
@@ -639,14 +780,20 @@ class GoogleMapsTest {
     @Test
     fun `geocode address verified route - when called too fast, it returns 429`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val device = "verified"
@@ -681,14 +828,20 @@ class GoogleMapsTest {
     @Test
     fun `geocode places unverified route - when no token is passed, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val device = "unverified"
@@ -704,14 +857,20 @@ class GoogleMapsTest {
     @Test
     fun `geocode places verified route - when no token is passed, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val device = "unverified"
@@ -727,14 +886,20 @@ class GoogleMapsTest {
     @Test
     fun `geocode places route - when expired token is passed, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
@@ -754,6 +919,7 @@ class GoogleMapsTest {
     @Test
     fun `geocode places route - when google api key is incorrect, it returns 500`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf").mergeWith(
@@ -762,14 +928,22 @@ class GoogleMapsTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/places/$placeId") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -791,18 +965,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode places route - when upstream returns results, it returns 200`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/places/$placeId") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -811,10 +994,10 @@ class GoogleMapsTest {
             assertEquals(
                 // language=Json
                 """
-                {
-                    "location": {"latitude": 50.123456, "longitude": -11.123456}
-                }
-            """.trimIndent().replace("\n", "").replace(" ", ""),
+                    {
+                        "location": {"latitude": 50.123456, "longitude": -11.123456}
+                    }
+                """.trimIndent().replace("\n", "").replace(" ", ""),
                 res.bodyAsText(),
             )
 
@@ -827,18 +1010,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode places route - when google maps api returns empty object, it returns 404`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/places/empty-object") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -855,18 +1047,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode places route - when google maps api returns invalid response, it returns 404`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/places/invalid") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -883,18 +1084,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode places route - when google maps api throws bad request, it returns 404`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/places/bad-request") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -915,18 +1125,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode places route - when google maps api throws not found, it returns 404`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/places/not-found") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -947,18 +1166,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode places route - when google maps api throws too many requests, it returns 500`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/places/too-many-requests") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -980,18 +1208,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode places route - when google maps api throws unauthorized, it returns 500`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/places/unauthorized") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -1013,18 +1250,27 @@ class GoogleMapsTest {
     @Test
     fun `geocode places route - when google maps api throws exception, it return 500`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val hour = CallDetails.formatCurrentHour()
-        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.validVerifiedDevice)) {
+        for ((device, token) in listOf(
+            "unverified" to Tokens.validUnverifiedDevice,
+            "verified" to Tokens.validVerifiedDevice
+        )) {
             val res = client.get("/v1/google-maps/$device/geocode/places/exception") {
                 headers[HttpHeaders.Authorization] = "Bearer $token"
                 accept(ContentType.Application.Json)
@@ -1042,14 +1288,20 @@ class GoogleMapsTest {
     @Test
     fun `geocode places unverified route - when called too fast, it returns 429`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         environment {
             config = ApplicationConfig("application-test.conf")
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val device = "unverified"
@@ -1085,6 +1337,26 @@ class GoogleMapsTest {
     fun `status connection route - when upstream returns expected location with tiny delta, it returns 200`() =
         testApplication {
             val cache = FakeCache()
+            val certificateVerification = TestCertificateVerification(cache)
+            val engine = MockEngine { request ->
+                when (request.url.toString()) {
+                    "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" -> respond(
+                        // language=Json
+                        """
+                            {
+                                "results": [
+                                    {"location": {"latitude": 47.5951518, "longitude": -122.33163940000001}}
+                                ]
+                            }
+                        """.trimIndent(),
+                        headers = headersOf(
+                            HttpHeaders.ContentType, ContentType.Application.Json.toString()
+                        ),
+                    )
+
+                    else -> throw NotImplementedError()
+                }
+            }
             val statsRepository = StatsRepository(cache)
             val statusApiToken = "test-status-"
             environment {
@@ -1094,31 +1366,15 @@ class GoogleMapsTest {
                     )
                 )
             }
+            install(ContentNegotiation) { json() }
+            install(Resources)
             application {
-                rootModule(statsRepository)
-                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-                googleMapsModule(
-                    MockEngine { request ->
-                        when (request.url.toString()) {
-                            "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" -> respond(
-                                // language=Json
-                                """
-                                        {
-                                            "results": [
-                                                {"location": {"latitude": 47.5951518, "longitude": -122.33163940000001}}
-                                            ]
-                                        }
-                                    """.trimIndent(),
-                                headers = headersOf(
-                                    HttpHeaders.ContentType, ContentType.Application.Json.toString()
-                                ),
-                            )
-
-                            else -> throw NotImplementedError()
-                        }
-                    },
-                    statsRepository,
-                )
+                authenticationModule(certificateVerification)
+                rateLimitModule()
+                statusPagesModule(statsRepository)
+            }
+            routing {
+                googleMapsRoutes(engine, statsRepository)
             }
 
             val res = client.head("/v1/status/google-maps/connection") {
@@ -1128,200 +1384,28 @@ class GoogleMapsTest {
         }
 
     @Test
-    fun `status connection route - when upstream returns unexpected location, it returns failure`() =
-        testApplication {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
-            val statusApiToken = "test-status-api-token"
-            environment {
-                config = ApplicationConfig("application-test.conf").mergeWith(
-                    MapApplicationConfig(
-                        "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
-                    )
-                )
-            }
-            application {
-                rootModule(statsRepository)
-                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-                googleMapsModule(
-                    MockEngine { request ->
-                        when (request.url.toString()) {
-                            "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" -> respond(
-                                // language=Json
-                                """
-                                    {
-                                        "results": [
-                                            {"location": {"latitude": 3.14, "longitude": -120.0}}
-                                        ]
-                                    }
-                                """.trimIndent(),
-                                headers = headersOf(
-                                    HttpHeaders.ContentType, ContentType.Application.Json.toString()
-                                ),
-                            )
-
-                            else -> throw NotImplementedError()
-                        }
-                    },
-                    statsRepository,
-                )
-            }
-
-            val res = client.head("/v1/status/google-maps/connection") {
-                headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
-            }
-            assertEquals(StatusFailed, res.status)
-            assertEquals("Unexpected location", res.bodyAsText())
-        }
-
-    @Test
-    fun `status connection route - when upstream returns no results, it returns 500`() =
-        testApplication {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
-            val statusApiToken = "test-status-api-token"
-            environment {
-                config = ApplicationConfig("application-test.conf").mergeWith(
-                    MapApplicationConfig(
-                        "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
-                    )
-                )
-            }
-            application {
-                rootModule(statsRepository)
-                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-                googleMapsModule(
-                    MockEngine { request ->
-                        when (request.url.toString()) {
-                            "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" -> respond(
-                                // language=Json
-                                """
-                                    {
-                                        "results": []
-                                    }
-                                """.trimIndent(),
-                                headers = headersOf(
-                                    HttpHeaders.ContentType, ContentType.Application.Json.toString()
-                                ),
-                            )
-
-                            else -> throw NotImplementedError()
-                        }
-                    },
-                    statsRepository,
-                )
-            }
-
-            val res = client.head("/v1/status/google-maps/connection") {
-                headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
-            }
-            assertEquals(StatusFailed, res.status)
-            assertEquals("Unexpected location", res.bodyAsText())
-        }
-
-    @Test
-    fun `status connection route - when upstream throws unauthorized, it returns 500`() =
-        testApplication {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
-            val statusApiToken = "test-status-api-token"
-            environment {
-                config = ApplicationConfig("application-test.conf").mergeWith(
-                    MapApplicationConfig(
-                        "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
-                    )
-                )
-            }
-            application {
-                rootModule(statsRepository)
-                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-                googleMapsModule(
-                    MockEngine { request ->
-                        when (request.url.toString()) {
-                            "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" ->
-                                respondError(HttpStatusCode.Unauthorized)
-
-                            else -> throw NotImplementedError()
-                        }
-                    },
-                    statsRepository,
-                )
-            }
-
-            val res = client.head("/v1/status/google-maps/connection") {
-                headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
-            }
-            assertEquals(HttpStatusCode.InternalServerError, res.status)
-            assertEquals("Upstream request failed", res.bodyAsText())
-        }
-
-    @Test
-    fun `status connection route - when upstream throws not found, it returns 404`() =
-        testApplication {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
-            val statusApiToken = "test-status-api-token"
-            environment {
-                config = ApplicationConfig("application-test.conf").mergeWith(
-                    MapApplicationConfig(
-                        "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
-                    )
-                )
-            }
-            application {
-                rootModule(statsRepository)
-                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-                googleMapsModule(
-                    MockEngine { request ->
-                        when (request.url.toString()) {
-                            "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" ->
-                                respondError(HttpStatusCode.NotFound)
-
-                            else -> throw NotImplementedError()
-                        }
-                    },
-                    statsRepository,
-                )
-            }
-
-            val res = client.head("/v1/status/google-maps/connection") {
-                headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
-            }
-            assertEquals(HttpStatusCode.NotFound, res.status)
-        }
-
-    @Test
-    fun `status connection route - when upstream throws exception, it returns 500`() =
-        testApplication {
-            val cache = FakeCache()
-            val statsRepository = StatsRepository(cache)
-            val statusApiToken = "test-status-api-token"
-            environment {
-                config = ApplicationConfig("application-test.conf").mergeWith(
-                    MapApplicationConfig(
-                        "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
-                    )
-                )
-            }
-            application {
-                rootModule(statsRepository)
-                authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-                googleMapsModule(
-                    MockEngine { throw SocketTimeoutException() },
-                    statsRepository,
-                )
-            }
-
-            val res = client.head("/v1/status/google-maps/connection") {
-                headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
-            }
-            assertEquals(HttpStatusCode.InternalServerError, res.status)
-            assertEquals("Upstream request failed", res.bodyAsText())
-        }
-
-    @Test
-    fun `status connection route - when called with incorrect token, it returns 401`() = testApplication {
+    fun `status connection route - when upstream returns unexpected location, it returns failure`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
+        val engine = MockEngine { request ->
+            when (request.url.toString()) {
+                "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" -> respond(
+                    // language=Json
+                    """
+                        {
+                            "results": [
+                                {"location": {"latitude": 3.14, "longitude": -120.0}}
+                            ]
+                        }
+                    """.trimIndent(),
+                    headers = headersOf(
+                        HttpHeaders.ContentType, ContentType.Application.Json.toString()
+                    ),
+                )
+
+                else -> throw NotImplementedError()
+            }
+        }
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -1331,10 +1415,203 @@ class GoogleMapsTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
+        }
+
+        val res = client.head("/v1/status/google-maps/connection") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(StatusFailed, res.status)
+        assertEquals("Unexpected location", res.bodyAsText())
+    }
+
+    @Test
+    fun `status connection route - when upstream returns no results, it returns 500`() = testApplication {
+        val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
+        val engine = MockEngine { request ->
+            when (request.url.toString()) {
+                "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" -> respond(
+                    // language=Json
+                    """
+                        {
+                            "results": []
+                        }
+                    """.trimIndent(),
+                    headers = headersOf(
+                        HttpHeaders.ContentType, ContentType.Application.Json.toString()
+                    ),
+                )
+
+                else -> throw NotImplementedError()
+            }
+        }
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        install(ContentNegotiation) { json() }
+        install(Resources)
+        application {
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
+        }
+
+        val res = client.head("/v1/status/google-maps/connection") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(StatusFailed, res.status)
+        assertEquals("Unexpected location", res.bodyAsText())
+    }
+
+    @Test
+    fun `status connection route - when upstream throws unauthorized, it returns 500`() = testApplication {
+        val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
+        val engine = MockEngine { request ->
+            when (request.url.toString()) {
+                "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" ->
+                    respondError(HttpStatusCode.Unauthorized)
+
+                else -> throw NotImplementedError()
+            }
+        }
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        install(ContentNegotiation) { json() }
+        install(Resources)
+        application {
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
+        }
+
+        val res = client.head("/v1/status/google-maps/connection") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(HttpStatusCode.InternalServerError, res.status)
+        assertEquals("Upstream request failed", res.bodyAsText())
+    }
+
+    @Test
+    fun `status connection route - when upstream throws not found, it returns 404`() = testApplication {
+        val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
+        val engine = MockEngine { request ->
+            when (request.url.toString()) {
+                "https://geocode.googleapis.com/v4/geocode/address/Lumen%20Field" ->
+                    respondError(HttpStatusCode.NotFound)
+
+                else -> throw NotImplementedError()
+            }
+        }
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        install(ContentNegotiation) { json() }
+        install(Resources)
+        application {
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
+        }
+
+        val res = client.head("/v1/status/google-maps/connection") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(HttpStatusCode.NotFound, res.status)
+    }
+
+    @Test
+    fun `status connection route - when upstream throws exception, it returns 500`() = testApplication {
+        val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
+        val engine = MockEngine { throw SocketTimeoutException() }
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        install(ContentNegotiation) { json() }
+        install(Resources)
+        application {
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
+        }
+
+        val res = client.head("/v1/status/google-maps/connection") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(HttpStatusCode.InternalServerError, res.status)
+        assertEquals("Upstream request failed", res.bodyAsText())
+    }
+
+    @Test
+    fun `status connection route - when called with incorrect token, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        install(ContentNegotiation) { json() }
+        install(Resources)
+        application {
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val res = client.head("/v1/status/google-maps/connection") {
@@ -1352,6 +1629,7 @@ class GoogleMapsTest {
     @Test
     fun `status success route - when the number exceeds threshold, it returns failure`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -1361,10 +1639,15 @@ class GoogleMapsTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         // When the number is low, it returns success
@@ -1388,6 +1671,7 @@ class GoogleMapsTest {
     @Test
     fun `status success route - when called with incorrect token, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -1397,10 +1681,15 @@ class GoogleMapsTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val res = client.head("/v1/status/google-maps/success/hour") {
@@ -1418,6 +1707,7 @@ class GoogleMapsTest {
     @Test
     fun `status exception route - when the number exceeds threshold, it returns failure`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -1427,10 +1717,15 @@ class GoogleMapsTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         // When the number is low, it returns success
@@ -1454,6 +1749,7 @@ class GoogleMapsTest {
     @Test
     fun `status exception route - when called with incorrect token, it returns 401`() = testApplication {
         val cache = FakeCache()
+        val certificateVerification = TestCertificateVerification(cache)
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
         environment {
@@ -1463,10 +1759,15 @@ class GoogleMapsTest {
                 )
             )
         }
+        install(ContentNegotiation) { json() }
+        install(Resources)
         application {
-            rootModule(statsRepository)
-            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
-            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+            authenticationModule(certificateVerification)
+            rateLimitModule()
+            statusPagesModule(statsRepository)
+        }
+        routing {
+            googleMapsRoutes(engine, statsRepository)
         }
 
         val res = client.head("/v1/status/google-maps/exception/hour") {

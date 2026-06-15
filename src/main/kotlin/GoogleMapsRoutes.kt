@@ -14,23 +14,21 @@ import io.ktor.http.appendPathSegments
 import io.ktor.resources.Resource
 import io.ktor.serialization.JsonConvertException
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.application.install
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
-import io.ktor.server.resources.Resources
 import io.ktor.server.resources.get
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondRedirect
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.head
 import io.ktor.server.routing.route
-import io.ktor.server.routing.routing
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import net.geoshare_app.lib.Device
 import net.geoshare_app.lib.StatusFailed
 import net.geoshare_app.lib.UpstreamNotFoundException
 import net.geoshare_app.lib.UpstreamUnauthorizedException
@@ -39,6 +37,7 @@ import net.geoshare_app.lib.equalsDelta
 import net.geoshare_app.lib.propertyAsBoolean
 import net.geoshare_app.lib.propertyAsString
 import net.geoshare_app.lib.details
+import net.geoshare_app.lib.toDevice
 import net.geoshare_app.lib.toScale
 import kotlin.random.Random
 
@@ -166,7 +165,7 @@ class GoogleMapsClient(
         }
 }
 
-fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsRepository: StatsRepository) {
+fun Route.googleMapsRoutes(engine: HttpClientEngine = CIO.create(), statsRepository: StatsRepository) {
     val config = environment.config
 
     val googleMapsClient = GoogleMapsClient(
@@ -176,85 +175,82 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
         statsRepository = statsRepository,
     )
 
-    install(Resources)
-    routing {
-        route("/v1/google-maps") {
-            authenticate("dispatch") {
-                rateLimit {
-                    get<AddressResource> { address ->
-                        when (call.authentication.principal<JWTPrincipal>()?.toDevice()) {
-                            Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/address/${address.query}")
-                            Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/address/${address.query}")
-                            null -> call.respond(HttpStatusCode.Unauthorized)
-                        }
-                    }
-                    get<PlaceResource> { place ->
-                        when (call.authentication.principal<JWTPrincipal>()?.toDevice()) {
-                            Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/places/${place.id}")
-                            Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/places/${place.id}")
-                            null -> call.respond(HttpStatusCode.Unauthorized)
-                        }
+    route("/v1/google-maps") {
+        authenticate("dispatch") {
+            rateLimit {
+                get<AddressResource> { address ->
+                    when (call.authentication.principal<JWTPrincipal>()?.toDevice()) {
+                        Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/address/${address.query}")
+                        Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/address/${address.query}")
+                        null -> call.respond(HttpStatusCode.Unauthorized)
                     }
                 }
-            }
-            route("/verified") {
-                authenticate("verified") {
-                    rateLimit(RateLimitName("verified")) {
-                        get<AddressResource> { address ->
-                            call.respond(googleMapsClient.callGeocodeAddressApi(call, address.query))
-                        }
-                        get<PlaceResource> { place ->
-                            call.respond(googleMapsClient.callGeocodePlacesApi(call, place.id))
-                        }
-                    }
-                }
-            }
-            route("/unverified") {
-                authenticate("unverified") {
-                    rateLimit(RateLimitName("unverified")) {
-                        get<AddressResource> { address ->
-                            call.respond(googleMapsClient.callGeocodeAddressApi(call, address.query))
-                        }
-                        get<PlaceResource> { place ->
-                            call.respond(googleMapsClient.callGeocodePlacesApi(call, place.id))
-                        }
+                get<PlaceResource> { place ->
+                    when (call.authentication.principal<JWTPrincipal>()?.toDevice()) {
+                        Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/places/${place.id}")
+                        Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/places/${place.id}")
+                        null -> call.respond(HttpStatusCode.Unauthorized)
                     }
                 }
             }
         }
+        route("/verified") {
+            authenticate("verified") {
+                rateLimit(RateLimitName("verified")) {
+                    get<AddressResource> { address ->
+                        call.respond(googleMapsClient.callGeocodeAddressApi(call, address.query))
+                    }
+                    get<PlaceResource> { place ->
+                        call.respond(googleMapsClient.callGeocodePlacesApi(call, place.id))
+                    }
+                }
+            }
+        }
+        route("/unverified") {
+            authenticate("unverified") {
+                rateLimit(RateLimitName("unverified")) {
+                    get<AddressResource> { address ->
+                        call.respond(googleMapsClient.callGeocodeAddressApi(call, address.query))
+                    }
+                    get<PlaceResource> { place ->
+                        call.respond(googleMapsClient.callGeocodePlacesApi(call, place.id))
+                    }
+                }
+            }
+        }
+    }
 
-        route("/v1/status/google-maps") {
-            authenticate("status") {
-                rateLimit {
-                    head("/connection") {
-                        // Check that Google Maps geocode API returns a result, so the configured API key is correct
-                        val res = googleMapsClient.callGeocodeAddressApi(call, "Lumen Field")
-                        if (res.results.firstOrNull()?.location != GoogleMapsLocation(47.5951518, -122.3316394)) {
-                            call.respond(StatusFailed, "Unexpected location")
+    route("/v1/status/google-maps") {
+        authenticate("status") {
+            rateLimit {
+                head("/connection") {
+                    // Check that Google Maps geocode API returns a result, so the configured API key is correct
+                    val res = googleMapsClient.callGeocodeAddressApi(call, "Lumen Field")
+                    if (res.results.firstOrNull()?.location != GoogleMapsLocation(47.5951518, -122.3316394)) {
+                        call.respond(StatusFailed, "Unexpected location")
+                    } else {
+                        call.respond(HttpStatusCode.OK)
+                    }
+                }
+                head("/success/hour") {
+                    // Check that there hasn't been too many successful API calls, which would suggest misuse
+                    with(call.details) {
+                        val num = statsRepository.get("stats:google-maps:success:$hour:total")
+                        if (num > 100) {
+                            call.respond(StatusFailed, num)
                         } else {
-                            call.respond(HttpStatusCode.OK)
+                            call.respond(num)
                         }
                     }
-                    head("/success/hour") {
-                        // Check that there hasn't been too many successful API calls, which would suggest misuse
-                        with(call.details) {
-                            val num = statsRepository.get("stats:google-maps:success:$hour:total")
-                            if (num > 100) {
-                                call.respond(StatusFailed, num)
-                            } else {
-                                call.respond(num)
-                            }
-                        }
-                    }
-                    head("/exception/hour") {
-                        // Check that there hasn't been too many exceptions
-                        with(call.details) {
-                            val num = statsRepository.get("stats:google-maps:exception:$hour:total")
-                            if (num > 5) {
-                                call.respond(StatusFailed, num)
-                            } else {
-                                call.respond(num)
-                            }
+                }
+                head("/exception/hour") {
+                    // Check that there hasn't been too many exceptions
+                    with(call.details) {
+                        val num = statsRepository.get("stats:google-maps:exception:$hour:total")
+                        if (num > 5) {
+                            call.respond(StatusFailed, num)
+                        } else {
+                            call.respond(num)
                         }
                     }
                 }
