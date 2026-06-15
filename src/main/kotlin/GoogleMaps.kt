@@ -133,6 +133,7 @@ class GoogleMapsClient(
                     statsRepository.hashIncrease(
                         "stats:google-maps:exception:$hour:by-code", tr.response.status.value.toString()
                     )
+                    statsRepository.hashIncrease("stats:google-maps:exception:$hour:by-endpoint", endpoint)
                     statsRepository.hashIncrease(
                         "stats:google-maps:exception:$hour:by-type", "client-request-exception"
                     )
@@ -145,6 +146,7 @@ class GoogleMapsClient(
                 }
             } catch (tr: JsonConvertException) {
                 with(call.details) {
+                    statsRepository.hashIncrease("stats:google-maps:exception:$hour:by-endpoint", endpoint)
                     statsRepository.hashIncrease(
                         "stats:google-maps:exception:$hour:by-type", "json-convert-exception"
                     )
@@ -153,6 +155,7 @@ class GoogleMapsClient(
                 throw UpstreamNotFoundException(tr)
             } catch (tr: Exception) {
                 with(call.details) {
+                    statsRepository.hashIncrease("stats:google-maps:exception:$hour:by-endpoint", endpoint)
                     statsRepository.hashIncrease(
                         "stats:google-maps:exception:$hour:by-type", "unknown"
                     )
@@ -187,7 +190,7 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                         }
                     }
                     get<PlaceResource> { place ->
-                        // TODO Test Google Maps Geocode Place dispatch
+                        // TODO Test Google Maps Geocode Places dispatch
                         when (call.authentication.principal<JWTPrincipal>()?.toDevice()) {
                             Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/places/${place.id}")
                             Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/places/${place.id}")
@@ -212,9 +215,11 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                 authenticate("unverified") {
                     rateLimit(RateLimitName("unverified")) {
                         get<AddressResource> { address ->
+                            // TODO Test Google Maps Geocode Address unverified
                             call.respond(googleMapsClient.callGeocodeAddressApi(call, address.query))
                         }
                         get<PlaceResource> { place ->
+                            // TODO Test Google Maps Geocode Places unverified
                             call.respond(googleMapsClient.callGeocodePlacesApi(call, place.id))
                         }
                     }

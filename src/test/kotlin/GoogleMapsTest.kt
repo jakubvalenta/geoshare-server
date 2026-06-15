@@ -142,11 +142,8 @@ class GoogleMapsTest {
 
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-address"
-        // Stats are not saved when authorization fails during JWT validation
-        assertEquals(0, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:auth:unauthorized:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
+        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
     }
 
     @Test
@@ -170,11 +167,8 @@ class GoogleMapsTest {
 
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-address"
-        // Stats are not saved when authorization fails during JWT validation
-        assertEquals(0, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:auth:unauthorized:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
+        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
     }
 
     @Test
@@ -204,10 +198,9 @@ class GoogleMapsTest {
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-address"
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "401"))
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -298,10 +291,9 @@ class GoogleMapsTest {
 
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-address"
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "json-convert-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -325,10 +317,9 @@ class GoogleMapsTest {
 
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-address"
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "json-convert-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -353,10 +344,9 @@ class GoogleMapsTest {
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-address"
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "400"))
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -381,10 +371,9 @@ class GoogleMapsTest {
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-address"
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "404"))
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -410,10 +399,9 @@ class GoogleMapsTest {
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-address"
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "429"))
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -439,10 +427,9 @@ class GoogleMapsTest {
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-address"
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "401"))
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -467,10 +454,9 @@ class GoogleMapsTest {
 
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-address"
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "unknown"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -531,11 +517,8 @@ class GoogleMapsTest {
 
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-places"
-        // Stats are not saved when authorization fails during JWT validation
-        assertEquals(0, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:auth:unauthorized:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
+        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
     }
 
     @Test
@@ -559,11 +542,8 @@ class GoogleMapsTest {
 
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-places"
-        // Stats are not saved when authorization fails during JWT validation
-        assertEquals(0, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:auth:unauthorized:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
+        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
     }
 
     @Test
@@ -593,10 +573,9 @@ class GoogleMapsTest {
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-places"
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "401"))
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -654,10 +633,9 @@ class GoogleMapsTest {
 
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-places"
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "json-convert-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -681,10 +659,9 @@ class GoogleMapsTest {
 
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-places"
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "json-convert-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -709,10 +686,9 @@ class GoogleMapsTest {
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-places"
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "400"))
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -737,10 +713,9 @@ class GoogleMapsTest {
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-places"
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "404"))
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -766,10 +741,9 @@ class GoogleMapsTest {
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-places"
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "429"))
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -795,10 +769,9 @@ class GoogleMapsTest {
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-places"
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "401"))
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -823,10 +796,9 @@ class GoogleMapsTest {
 
         val hour = CallDetails.formatCurrentHour()
         val endpoint = "google-maps-verified-places"
+        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "unknown"))
         assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
-        assertEquals(0, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(0, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test

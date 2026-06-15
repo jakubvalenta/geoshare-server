@@ -95,11 +95,6 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 if (!credential.payload.subject.isNullOrEmpty()) {
                     JWTPrincipal(credential.payload)
                 } else {
-                    with(this.details) {
-                        // TODO Test auth unauthorized dispatch stats
-                        statsRepository.hashIncrease("stats:auth:unauthorized:$hour:by-endpoint", endpoint)
-                        statsRepository.increase("stats:auth:unauthorized:$hour:total")
-                    }
                     null
                 }
             }
@@ -113,11 +108,6 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 ) {
                     JWTPrincipal(credential.payload)
                 } else {
-                    with(this.details) {
-                        // TODO Test auth unauthorized unverified stats
-                        statsRepository.hashIncrease("stats:auth:unauthorized:$hour:by-endpoint", endpoint)
-                        statsRepository.increase("stats:auth:unauthorized:$hour:total")
-                    }
                     null
                 }
             }
@@ -131,11 +121,6 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 ) {
                     JWTPrincipal(credential.payload)
                 } else {
-                    with(this.details) {
-                        // TODO Test auth unauthorized verified stats
-                        statsRepository.hashIncrease("stats:auth:unauthorized:$hour:by-endpoint", endpoint)
-                        statsRepository.increase("stats:auth:unauthorized:$hour:total")
-                    }
                     null
                 }
             }
@@ -145,11 +130,6 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                 if (tokenCredential.token.toByteArray().sha256Hex() == statusApiTokenHash) {
                     true
                 } else {
-                    with(this.details) {
-                        // TODO Test auth unauthorized status stats
-                        statsRepository.hashIncrease("stats:auth:unauthorized:$hour:by-endpoint", endpoint)
-                        statsRepository.increase("stats:auth:unauthorized:$hour:total")
-                    }
                     null
                 }
             }

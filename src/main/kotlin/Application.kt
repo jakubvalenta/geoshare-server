@@ -14,10 +14,10 @@ import io.ktor.server.response.respondText
 import net.geoshare_app.lib.UpstreamNotFoundException
 import net.geoshare_app.lib.UpstreamUnauthorizedException
 import net.geoshare_app.lib.UpstreamUnknownException
+import net.geoshare_app.lib.details
 import net.geoshare_app.lib.ipToRateLimitBlock
 import net.geoshare_app.lib.propertyAsDuration
 import net.geoshare_app.lib.propertyAsInt
-import net.geoshare_app.lib.details
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
@@ -86,6 +86,13 @@ fun Application.rootModule(statsRepository: StatsRepository) {
             }
             val retryAfter = call.response.headers["Retry-After"]
             call.respondText(text = "Too many requests. Wait for $retryAfter seconds", status = status)
+        }
+        status(HttpStatusCode.Unauthorized) { call, _ ->
+            with(call.details) {
+                statsRepository.hashIncrease("stats:auth:unauthorized:$hour:by-endpoint", endpoint)
+                statsRepository.increase("stats:auth:unauthorized:$hour:total")
+            }
+            // Don't call call.respond(), so that a previously set response is used and not overwritten
         }
     }
 }
