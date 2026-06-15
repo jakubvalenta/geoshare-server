@@ -137,13 +137,15 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/address/$query")
-        assertEquals(HttpStatusCode.Unauthorized, res.status)
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-address"
-        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
+        for (device in listOf("unverified", "verified")) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/$query")
+            assertEquals(HttpStatusCode.Unauthorized, res.status)
+
+            val endpoint = "google-maps-$device-address"
+            assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.get("stats:auth:unauthorized:$hour:total"))
     }
 
     @Test
@@ -159,16 +161,18 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.expired}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.Unauthorized, res.status)
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-address"
-        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.expired, "verified" to Tokens.expired)) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/$query") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.Unauthorized, res.status)
+
+            val endpoint = "google-maps-$device-address"
+            assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.get("stats:auth:unauthorized:$hour:total"))
     }
 
     @Test
@@ -188,19 +192,21 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.InternalServerError, res.status)
-        assertEquals("Upstream request failed", res.bodyAsText())
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-address"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "401"))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/$query") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.InternalServerError, res.status)
+            assertEquals("Upstream request failed", res.bodyAsText())
+
+            val endpoint = "google-maps-$device-address"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "401"))
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -216,14 +222,16 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.OK, res.status)
-        assertEquals(
-            // language=Json
-            """
+        val hour = CallDetails.formatCurrentHour()
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/$query") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.OK, res.status)
+            assertEquals(
+                // language=Json
+                """
                 {
                     "results": [
                         {"location": {"latitude": 50.123456, "longitude": -11.123456}},
@@ -231,13 +239,13 @@ class GoogleMapsTest {
                     ]
                 }
             """.trimIndent().replace("\n", "").replace(" ", ""),
-            res.bodyAsText(),
-        )
+                res.bodyAsText(),
+            )
 
-        val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-address"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.get("stats:google-maps:success:$hour:total"))
+            val endpoint = "google-maps-$device-address"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -253,21 +261,23 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/address/empty-results") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.OK, res.status)
-        assertEquals(
-            // language=Json
-            """{"results":[]}""",
-            res.bodyAsText(),
-        )
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-address"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.get("stats:google-maps:success:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/empty-results") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.OK, res.status)
+            assertEquals(
+                // language=Json
+                """{"results":[]}""",
+                res.bodyAsText(),
+            )
+
+            val endpoint = "google-maps-$device-address"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -283,17 +293,19 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/address/empty-object") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.NotFound, res.status)
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-address"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "json-convert-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/empty-object") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.NotFound, res.status)
+
+            val endpoint = "google-maps-$device-address"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "json-convert-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -309,17 +321,19 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/address/invalid") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.NotFound, res.status)
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-address"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "json-convert-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/invalid") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.NotFound, res.status)
+
+            val endpoint = "google-maps-$device-address"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "json-convert-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -335,18 +349,20 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/address/bad-request") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.NotFound, res.status)
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-address"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "400"))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/bad-request") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.NotFound, res.status)
+
+            val endpoint = "google-maps-$device-address"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "400"))
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -362,18 +378,20 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/address/not-found") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.NotFound, res.status)
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-address"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "404"))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/not-found") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.NotFound, res.status)
+
+            val endpoint = "google-maps-$device-address"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "404"))
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -389,19 +407,21 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/address/too-many-requests") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.InternalServerError, res.status)
-        assertEquals("Upstream request failed", res.bodyAsText())
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-address"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "429"))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/too-many-requests") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.InternalServerError, res.status)
+            assertEquals("Upstream request failed", res.bodyAsText())
+
+            val endpoint = "google-maps-$device-address"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "429"))
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -417,19 +437,21 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/address/unauthorized") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.InternalServerError, res.status)
-        assertEquals("Upstream request failed", res.bodyAsText())
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-address"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "401"))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/unauthorized") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.InternalServerError, res.status)
+            assertEquals("Upstream request failed", res.bodyAsText())
+
+            val endpoint = "google-maps-$device-address"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "401"))
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -445,22 +467,24 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/address/exception") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.InternalServerError, res.status)
-        assertEquals("Upstream request failed", res.bodyAsText())
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-address"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "unknown"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/exception") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.InternalServerError, res.status)
+            assertEquals("Upstream request failed", res.bodyAsText())
+
+            val endpoint = "google-maps-$device-address"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "unknown"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
-    fun `geocode address route - when called too fast, it returns 429`() = testApplication {
+    fun `geocode address unverified route - when called too fast, it returns 429`() = testApplication {
         val cache = FakeCache()
         val statsRepository = StatsRepository(cache)
         environment {
@@ -472,27 +496,29 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
+        val device = "unverified"
+        val token = Tokens.validUnverifiedDevice
+        val hour = CallDetails.formatCurrentHour()
+        val ip = "203.0.113.1"
+        val subject = Certs.leafKey.public.fingerprint()
         // The first few requests pass
-        repeat(5) {
-            val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
-                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+        repeat(1) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/$query") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
                 headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
                 accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.OK, res.status)
         }
         // The next request is rate-limited
-        val res = client.get("/v1/google-maps/verified/geocode/address/$query") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+        val res = client.get("/v1/google-maps/$device/geocode/address/$query") {
+            headers[HttpHeaders.Authorization] = "Bearer $token"
             headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.TooManyRequests, res.status)
 
-        val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-address"
-        val ip = "203.0.113.1"
-        val subject = Certs.leafKey.public.fingerprint()
+        val endpoint = "google-maps-$device-address"
         assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", ip))
         assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-subject", subject))
@@ -500,7 +526,7 @@ class GoogleMapsTest {
     }
 
     @Test
-    fun `geocode places route - when no token is passed, it returns 401`() = testApplication {
+    fun `geocode address verified route - when called too fast, it returns 429`() = testApplication {
         val cache = FakeCache()
         val statsRepository = StatsRepository(cache)
         environment {
@@ -512,11 +538,77 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/places/$placeId")
+        val device = "verified"
+        val token = Tokens.valid
+        val hour = CallDetails.formatCurrentHour()
+        val ip = "203.0.113.1"
+        val subject = Certs.leafKey.public.fingerprint()
+        // The first few requests pass
+        repeat(5) {
+            val res = client.get("/v1/google-maps/$device/geocode/address/$query") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.OK, res.status)
+        }
+        // The next request is rate-limited
+        val res = client.get("/v1/google-maps/$device/geocode/address/$query") {
+            headers[HttpHeaders.Authorization] = "Bearer $token"
+            headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.TooManyRequests, res.status)
+
+        val endpoint = "google-maps-$device-address"
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-endpoint", endpoint))
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", ip))
+        assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-subject", subject))
+        assertEquals(1, statsRepository.get("stats:rate-limit:$hour:total"))
+    }
+
+    @Test
+    fun `geocode places unverified route - when no token is passed, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        environment {
+            config = ApplicationConfig("application-test.conf")
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+        }
+
+        val device = "unverified"
+        val hour = CallDetails.formatCurrentHour()
+        val res = client.get("/v1/google-maps/$device/geocode/places/$placeId")
         assertEquals(HttpStatusCode.Unauthorized, res.status)
 
+        val endpoint = "google-maps-$device-places"
+        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
+    }
+
+    @Test
+    fun `geocode places verified route - when no token is passed, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        environment {
+            config = ApplicationConfig("application-test.conf")
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
+        }
+
+        val device = "unverified"
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-places"
+        val res = client.get("/v1/google-maps/$device/geocode/places/$placeId")
+        assertEquals(HttpStatusCode.Unauthorized, res.status)
+
+        val endpoint = "google-maps-$device-places"
         assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
     }
@@ -534,16 +626,19 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/places/$placeId") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.expired}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.Unauthorized, res.status)
-
+        val device = "verified"
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-places"
-        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.expired, "verified" to Tokens.expired)) {
+            val res = client.get("/v1/google-maps/$device/geocode/places/$placeId") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.Unauthorized, res.status)
+
+            val endpoint = "google-maps-$device-places"
+            assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.get("stats:auth:unauthorized:$hour:total"))
     }
 
     @Test
@@ -563,19 +658,21 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/places/$placeId") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.InternalServerError, res.status)
-        assertEquals("Upstream request failed", res.bodyAsText())
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-places"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "401"))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/places/$placeId") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.InternalServerError, res.status)
+            assertEquals("Upstream request failed", res.bodyAsText())
+
+            val endpoint = "google-maps-$device-places"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "401"))
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -591,25 +688,27 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/places/$placeId") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.OK, res.status)
-        assertEquals(
-            // language=Json
-            """
+        val hour = CallDetails.formatCurrentHour()
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/places/$placeId") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.OK, res.status)
+            assertEquals(
+                // language=Json
+                """
                 {
                     "location": {"latitude": 50.123456, "longitude": -11.123456}
                 }
             """.trimIndent().replace("\n", "").replace(" ", ""),
-            res.bodyAsText(),
-        )
+                res.bodyAsText(),
+            )
 
-        val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-places"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.get("stats:google-maps:success:$hour:total"))
+            val endpoint = "google-maps-$device-places"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:success:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.get("stats:google-maps:success:$hour:total"))
     }
 
     @Test
@@ -625,17 +724,19 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/places/empty-object") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.NotFound, res.status)
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-places"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "json-convert-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/places/empty-object") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.NotFound, res.status)
+
+            val endpoint = "google-maps-$device-places"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "json-convert-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -651,17 +752,19 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/places/invalid") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.NotFound, res.status)
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-places"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "json-convert-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/places/invalid") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.NotFound, res.status)
+
+            val endpoint = "google-maps-$device-places"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "json-convert-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -677,18 +780,20 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/places/bad-request") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.NotFound, res.status)
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-places"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "400"))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/places/bad-request") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.NotFound, res.status)
+
+            val endpoint = "google-maps-$device-places"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "400"))
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -704,18 +809,20 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/places/not-found") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.NotFound, res.status)
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-places"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "404"))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/places/not-found") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.NotFound, res.status)
+
+            val endpoint = "google-maps-$device-places"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "404"))
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -731,19 +838,21 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/places/too-many-requests") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.InternalServerError, res.status)
-        assertEquals("Upstream request failed", res.bodyAsText())
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-places"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "429"))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/places/too-many-requests") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.InternalServerError, res.status)
+            assertEquals("Upstream request failed", res.bodyAsText())
+
+            val endpoint = "google-maps-$device-places"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "429"))
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -759,19 +868,21 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/places/unauthorized") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.InternalServerError, res.status)
-        assertEquals("Upstream request failed", res.bodyAsText())
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-places"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "401"))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/places/unauthorized") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.InternalServerError, res.status)
+            assertEquals("Upstream request failed", res.bodyAsText())
+
+            val endpoint = "google-maps-$device-places"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-code", "401"))
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "client-request-exception"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
@@ -787,22 +898,24 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
-        val res = client.get("/v1/google-maps/verified/geocode/places/exception") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
-            accept(ContentType.Application.Json)
-        }
-        assertEquals(HttpStatusCode.InternalServerError, res.status)
-        assertEquals("Upstream request failed", res.bodyAsText())
-
         val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-places"
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
-        assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "unknown"))
-        assertEquals(1, statsRepository.get("stats:google-maps:exception:$hour:total"))
+        for ((device, token) in listOf("unverified" to Tokens.validUnverifiedDevice, "verified" to Tokens.valid)) {
+            val res = client.get("/v1/google-maps/$device/geocode/places/exception") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
+                accept(ContentType.Application.Json)
+            }
+            assertEquals(HttpStatusCode.InternalServerError, res.status)
+            assertEquals("Upstream request failed", res.bodyAsText())
+
+            val endpoint = "google-maps-$device-places"
+            assertEquals(1, statsRepository.hashGet("stats:google-maps:exception:$hour:by-endpoint", endpoint))
+        }
+        assertEquals(2, statsRepository.hashGet("stats:google-maps:exception:$hour:by-type", "unknown"))
+        assertEquals(2, statsRepository.get("stats:google-maps:exception:$hour:total"))
     }
 
     @Test
-    fun `geocode places route - when called too fast, it returns 429`() = testApplication {
+    fun `geocode places unverified route - when called too fast, it returns 429`() = testApplication {
         val cache = FakeCache()
         val statsRepository = StatsRepository(cache)
         environment {
@@ -814,27 +927,29 @@ class GoogleMapsTest {
             googleMapsModule(this@GoogleMapsTest.engine, statsRepository)
         }
 
+        val device = "unverified"
+        val token = Tokens.validUnverifiedDevice
+        val hour = CallDetails.formatCurrentHour()
+        val ip = "203.0.113.1"
+        val subject = Certs.leafKey.public.fingerprint()
         // The first few requests pass
-        repeat(5) {
-            val res = client.get("/v1/google-maps/verified/geocode/places/$placeId") {
-                headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+        repeat(1) {
+            val res = client.get("/v1/google-maps/$device/geocode/places/$placeId") {
+                headers[HttpHeaders.Authorization] = "Bearer $token"
                 headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
                 accept(ContentType.Application.Json)
             }
             assertEquals(HttpStatusCode.OK, res.status)
         }
         // The next request is rate-limited
-        val res = client.get("/v1/google-maps/verified/geocode/places/$placeId") {
-            headers[HttpHeaders.Authorization] = "Bearer ${Tokens.valid}"
+        val res = client.get("/v1/google-maps/$device/geocode/places/$placeId") {
+            headers[HttpHeaders.Authorization] = "Bearer $token"
             headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
             accept(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.TooManyRequests, res.status)
 
-        val hour = CallDetails.formatCurrentHour()
-        val endpoint = "google-maps-verified-places"
-        val ip = "203.0.113.1"
-        val subject = Certs.leafKey.public.fingerprint()
+        val endpoint = "google-maps-$device-places"
         assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-endpoint", endpoint))
         assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-ip", ip))
         assertEquals(1, statsRepository.hashGet("stats:rate-limit:$hour:by-subject", subject))

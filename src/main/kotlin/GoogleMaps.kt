@@ -215,11 +215,9 @@ fun Application.googleMapsModule(engine: HttpClientEngine = CIO.create(), statsR
                 authenticate("unverified") {
                     rateLimit(RateLimitName("unverified")) {
                         get<AddressResource> { address ->
-                            // TODO Test Google Maps Geocode Address unverified
                             call.respond(googleMapsClient.callGeocodeAddressApi(call, address.query))
                         }
                         get<PlaceResource> { place ->
-                            // TODO Test Google Maps Geocode Places unverified
                             call.respond(googleMapsClient.callGeocodePlacesApi(call, place.id))
                         }
                     }
