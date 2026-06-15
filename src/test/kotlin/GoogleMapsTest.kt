@@ -1138,7 +1138,7 @@ class GoogleMapsTest {
     }
 
     @Test
-    fun `status success route - when the number of successful calls exceeds threshold, it returns failure`() = testApplication {
+    fun `status success route - when the number exceeds threshold, it returns failure`() = testApplication {
         val cache = FakeCache()
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
@@ -1204,7 +1204,7 @@ class GoogleMapsTest {
     }
 
     @Test
-    fun `status exception route - when the number of failed calls exceeds threshold, it returns failure`() = testApplication {
+    fun `status exception route - when the number exceeds threshold, it returns failure`() = testApplication {
         val cache = FakeCache()
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"

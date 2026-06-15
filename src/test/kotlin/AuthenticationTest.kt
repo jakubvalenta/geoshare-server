@@ -1,19 +1,26 @@
 package net.geoshare_app
 
 import io.ktor.client.call.body
+import io.ktor.client.request.head
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.config.ApplicationConfig
+import io.ktor.server.config.MapApplicationConfig
+import io.ktor.server.config.mergeWith
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
+import net.geoshare_app.lib.CallDetails
+import net.geoshare_app.lib.StatusFailed
 import net.geoshare_app.lib.base64Decode
 import net.geoshare_app.lib.base64Encode
 import net.geoshare_app.lib.fingerprint
+import net.geoshare_app.lib.sha256Hex
 import net.geoshare_app.lib.sign
 import net.geoshare_app.testing.CertLists
 import net.geoshare_app.testing.Certs
@@ -804,4 +811,329 @@ class AuthenticationTest {
                 assertEquals(HttpStatusCode.OK, res2.status)
             }
         }
+
+    @Test
+    fun `status challenge success route - when the number exceeds threshold, it returns failure`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+        }
+
+        // When the number is low, it returns success
+        val hour = CallDetails.formatCurrentHour()
+        repeat(100) {
+            statsRepository.increase("stats:auth:challenge:success:$hour:total")
+        }
+        val resSuccess = client.head("/v1/status/auth/challenge/success/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(HttpStatusCode.OK, resSuccess.status)
+
+        // When the number exceeds threshold, it returns failure
+        statsRepository.increase("stats:auth:challenge:success:$hour:total")
+        val resFailure = client.head("/v1/status/auth/challenge/success/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(StatusFailed, resFailure.status)
+    }
+
+    @Test
+    fun `status challenge success route - when called with incorrect token, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            statusModule(cache, statsRepository)
+        }
+
+        val res = client.head("/v1/status/auth/challenge/success/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer spam"
+            headers["X-Real-Ip"] = "203.0.113.1"
+        }
+        assertEquals(HttpStatusCode.Unauthorized, res.status)
+
+        val hour = CallDetails.formatCurrentHour()
+        val endpoint = "status"
+        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
+    }
+
+    @Test
+    fun `status login success route - when the number exceeds threshold, it returns failure`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+        }
+
+        // When the number is low, it returns success
+        val hour = CallDetails.formatCurrentHour()
+        repeat(10) {
+            statsRepository.increase("stats:auth:login:success:$hour:total")
+        }
+        val resSuccess = client.head("/v1/status/auth/login/success/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(HttpStatusCode.OK, resSuccess.status)
+
+        // When the number exceeds threshold, it returns failure
+        statsRepository.increase("stats:auth:login:success:$hour:total")
+        val resFailure = client.head("/v1/status/auth/login/success/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(StatusFailed, resFailure.status)
+    }
+
+    @Test
+    fun `status login error route - when called with incorrect token, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            statusModule(cache, statsRepository)
+        }
+
+        val res = client.head("/v1/status/auth/login/error/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer spam"
+            headers["X-Real-Ip"] = "203.0.113.1"
+        }
+        assertEquals(HttpStatusCode.Unauthorized, res.status)
+
+        val hour = CallDetails.formatCurrentHour()
+        val endpoint = "status"
+        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
+    }
+
+    @Test
+    fun `status login error route - when the number exceeds threshold, it returns failure`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+        }
+
+        // When the number is low, it returns success
+        val hour = CallDetails.formatCurrentHour()
+        repeat(10) {
+            statsRepository.increase("stats:auth:login:error:$hour:total")
+        }
+        val resSuccess = client.head("/v1/status/auth/login/error/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(HttpStatusCode.OK, resSuccess.status)
+
+        // When the number exceeds threshold, it returns failure
+        statsRepository.increase("stats:auth:login:error:$hour:total")
+        val resFailure = client.head("/v1/status/auth/login/error/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(StatusFailed, resFailure.status)
+    }
+
+    @Test
+    fun `status login success route - when called with incorrect token, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            statusModule(cache, statsRepository)
+        }
+
+        val res = client.head("/v1/status/auth/login/success/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer spam"
+            headers["X-Real-Ip"] = "203.0.113.1"
+        }
+        assertEquals(HttpStatusCode.Unauthorized, res.status)
+
+        val hour = CallDetails.formatCurrentHour()
+        val endpoint = "status"
+        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
+    }
+
+    @Test
+    fun `status register success route - when the number exceeds threshold, it returns failure`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+        }
+
+        // When the number is low, it returns success
+        val hour = CallDetails.formatCurrentHour()
+        repeat(10) {
+            statsRepository.increase("stats:auth:register:success:$hour:total")
+        }
+        val resSuccess = client.head("/v1/status/auth/register/success/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(HttpStatusCode.OK, resSuccess.status)
+
+        // When the number exceeds threshold, it returns failure
+        statsRepository.increase("stats:auth:register:success:$hour:total")
+        val resFailure = client.head("/v1/status/auth/register/success/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(StatusFailed, resFailure.status)
+    }
+
+    @Test
+    fun `status register success route - when called with incorrect token, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            statusModule(cache, statsRepository)
+        }
+
+        val res = client.head("/v1/status/auth/register/success/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer spam"
+            headers["X-Real-Ip"] = "203.0.113.1"
+        }
+        assertEquals(HttpStatusCode.Unauthorized, res.status)
+
+        val hour = CallDetails.formatCurrentHour()
+        val endpoint = "status"
+        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
+    }
+
+    @Test
+    fun `status register error route - when the number exceeds threshold, it returns failure`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+        }
+
+        // When the number is low, it returns success
+        val hour = CallDetails.formatCurrentHour()
+        repeat(10) {
+            statsRepository.increase("stats:auth:register:error:$hour:total")
+        }
+        val resSuccess = client.head("/v1/status/auth/register/error/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(HttpStatusCode.OK, resSuccess.status)
+
+        // When the number exceeds threshold, it returns failure
+        statsRepository.increase("stats:auth:register:error:$hour:total")
+        val resFailure = client.head("/v1/status/auth/register/error/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
+        }
+        assertEquals(StatusFailed, resFailure.status)
+    }
+
+    @Test
+    fun `status register error route - when called with incorrect token, it returns 401`() = testApplication {
+        val cache = FakeCache()
+        val statsRepository = StatsRepository(cache)
+        val statusApiToken = "test-status-api-token"
+        environment {
+            config = ApplicationConfig("application-test.conf").mergeWith(
+                MapApplicationConfig(
+                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+                )
+            )
+        }
+        application {
+            rootModule(statsRepository)
+            authenticationModule(cache, TestCertificateVerification(cache), statsRepository)
+            statusModule(cache, statsRepository)
+        }
+
+        val res = client.head("/v1/status/auth/register/error/hour") {
+            headers[HttpHeaders.Authorization] = "Bearer spam"
+            headers["X-Real-Ip"] = "203.0.113.1"
+        }
+        assertEquals(HttpStatusCode.Unauthorized, res.status)
+
+        val hour = CallDetails.formatCurrentHour()
+        val endpoint = "status"
+        assertEquals(1, statsRepository.hashGet("stats:auth:unauthorized:$hour:by-endpoint", endpoint))
+        assertEquals(1, statsRepository.get("stats:auth:unauthorized:$hour:total"))
+    }
 }

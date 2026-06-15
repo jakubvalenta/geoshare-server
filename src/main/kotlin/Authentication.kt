@@ -308,7 +308,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
             authenticate("status") {
                 rateLimit {
                     head("/challenge/success/hour") {
-                        // TODO Test auth challenge success status
+                        // Check that there hasn't been too many challenge requests, which would suggest misuse
                         with(call.details) {
                             val num = statsRepository.get("stats:auth:challenge:success:$hour:total")
                             if (num > 100) {
@@ -319,10 +319,10 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                         }
                     }
                     head("/login/success/hour") {
-                        // TODO Test auth login success status
+                        // Check that there hasn't been too many successful logins, which would suggest misuse
                         with(call.details) {
                             val num = statsRepository.get("stats:auth:login:success:$hour:total")
-                            if (num > 100) {
+                            if (num > 10) {
                                 call.respond(StatusFailed, num)
                             } else {
                                 call.respond(num)
@@ -330,7 +330,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                         }
                     }
                     head("/login/error/hour") {
-                        // TODO Test auth login error status
+                        // Check that there hasn't been too many failed logins
                         with(call.details) {
                             val num = statsRepository.get("stats:auth:login:error:$hour:total")
                             if (num > 10) {
@@ -341,10 +341,10 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                         }
                     }
                     head("/register/success/hour") {
-                        // TODO Test auth register success status
+                        // Check that there hasn't been too many successful registrations, which would suggest misuse
                         with(call.details) {
                             val num = statsRepository.get("stats:auth:register:success:$hour:total")
-                            if (num > 100) {
+                            if (num > 10) {
                                 call.respond(StatusFailed, num)
                             } else {
                                 call.respond(num)
@@ -352,7 +352,7 @@ fun Application.authenticationModule(cache: Cache, certificateVerification: Cert
                         }
                     }
                     head("/register/error/hour") {
-                        // TODO Test auth register error status
+                        // Check that there hasn't been too many failed registrations
                         with(call.details) {
                             val num = statsRepository.get("stats:auth:register:error:$hour:total")
                             if (num > 10) {

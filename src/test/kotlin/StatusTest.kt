@@ -123,7 +123,7 @@ class StatusTest {
     }
 
     @Test
-    fun `status rate limit route - when the number of failed calls exceeds threshold, it returns failure`() = testApplication {
+    fun `status rate limit route - when the number exceeds threshold, it returns failure`() = testApplication {
         val cache = FakeCache()
         val statsRepository = StatsRepository(cache)
         val statusApiToken = "test-status-api-token"
