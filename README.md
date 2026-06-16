@@ -27,7 +27,7 @@ mkdir -p ./secrets
 head -c 64 < /dev/urandom > ./secrets/jwt-secret
 ```
 
-Generate a status check API key and store it in a file:
+Generate a status check API key, remember it, and store its hash in a file:
 
 ```shell
 your_status_api_token=$(uuidgen)

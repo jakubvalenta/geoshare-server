@@ -1,9 +1,10 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="run-demo" type="GradleRunConfiguration" factoryName="Gradle">
+  <configuration default="false" name="run-dry" type="GradleRunConfiguration" factoryName="Gradle">
     <ExternalSystemSettings>
       <option name="env">
         <map>
           <entry key="CACHE_URI" value="redis-socket:///run/user/1000/redis.sock" />
+          <entry key="DRY_RUN" value="true" />
           <entry key="GOOGLE_MAPS_API_KEY_FILE" value="secrets/google-maps-api-key" />
           <entry key="JWT_SECRET_FILE" value="secrets/jwt-secret" />
         </map>
@@ -18,7 +19,6 @@
       <option name="taskNames">
         <list>
           <option value="run" />
-          <option value="--args='-config=application-demo.conf'" />
         </list>
       </option>
       <option name="vmOptions" />
