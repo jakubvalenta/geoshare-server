@@ -28,6 +28,9 @@ import java.security.cert.X509Certificate
 import java.security.interfaces.ECPrivateKey
 import java.security.interfaces.RSAPrivateKey
 import java.security.spec.ECGenParameterSpec
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Date
 
 /**
@@ -51,7 +54,7 @@ class KeyAttestationCertFactory(val fakeCalendar: FakeCalendar = FakeCalendar.DE
 
     internal fun generateRootCertificate(
         keyPair: KeyPair = rootKey,
-        subject: X500Name = X500Name("SERIALNUMBER=badc0de"),
+        subject: X500Name = RKP_ROOT_SUBJECT,
     ) =
         generateCertificate(
             keyPair.public,
@@ -59,8 +62,8 @@ class KeyAttestationCertFactory(val fakeCalendar: FakeCalendar = FakeCalendar.DE
             subject = subject,
             issuer = subject,
             serialNumber = BigInteger.valueOf(0xca11cafe),
-            notBefore = fakeCalendar.lastWeek(),
-            notAfter = fakeCalendar.nextWeek(),
+            notBefore = fakeCalendar.longAgo(),
+            notAfter = fakeCalendar.farInTheFuture(),
             extensions = listOf(BASIC_CONSTRAINTS_EXT),
         )
 
@@ -190,6 +193,8 @@ class KeyAttestationCertFactory(val fakeCalendar: FakeCalendar = FakeCalendar.DE
                     ),
             )
                 .asExtension()
+
+        val RKP_ROOT_SUBJECT = X500Name("CN=Test Key Attestation CA1, OU=Android, O=Google LLC, C=US")
     }
 }
 
@@ -208,3 +213,11 @@ private fun X509CertificateHolder.asX509Certificate() =
 
 private fun X509v3CertificateBuilder.sign(signer: ContentSigner) =
     this.build(signer).asX509Certificate()
+
+private fun FakeCalendar.longAgo(): Date = today.minusYears(5).toDate()
+
+private fun FakeCalendar.farInTheFuture(): Date = today.plusYears(5).toDate()
+
+private fun Instant.toDate() = Date.from(this)
+
+private fun LocalDate.toDate() = this.atStartOfDay(ZoneId.of("UTC")).toInstant().toDate()
