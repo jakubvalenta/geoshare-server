@@ -14,7 +14,7 @@ dependencyResolutionManagement {
         google()
     }
     versionCatalogs {
-        create("ktorLibs").from("io.ktor:ktor-version-catalog:3.4.0")
+        create("ktorLibs").from("io.ktor:ktor-version-catalog:3.4.0") // Use 3.4.0, because rate limiting unit tests fail with 3.5.1
     }
 }
 
