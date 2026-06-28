@@ -35,14 +35,14 @@ fun PublicKey.fingerprint(): String =
         .base64Encode()
 
 fun PublicKey.verifySignature(signature: ByteArray, data: ByteArray): Boolean =
-    Signature.getInstance("SHA256withECDSA").run {
+    Signature.getInstance(@Suppress("GrazieInspectionRunner", "SpellCheckingInspection") "SHA256withECDSA").run {
         initVerify(this@verifySignature)
         update(data)
         verify(signature)
     }
 
 fun PrivateKey.sign(data: ByteArray): ByteArray =
-    Signature.getInstance("SHA256withECDSA").run {
+    Signature.getInstance(@Suppress("GrazieInspectionRunner", "SpellCheckingInspection") "SHA256withECDSA").run {
         initSign(this@sign)
         update(data)
         sign()

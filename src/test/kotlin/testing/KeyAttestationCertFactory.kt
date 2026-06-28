@@ -36,7 +36,7 @@ import java.util.Date
 /**
  * @see [com.android.keyattestation.verifier.testing.KeyAttestationCertFactory]
  */
-@Suppress("InconsistentCommentForJavaParameter", "SpellCheckingInspection")
+@Suppress("GrazieInspectionRunner", "SpellCheckingInspection")
 class KeyAttestationCertFactory(val fakeCalendar: FakeCalendar = FakeCalendar.DEFAULT) {
     private val ecKeyPairGenerator =
         KeyPairGenerator.getInstance("EC").apply {
@@ -198,6 +198,7 @@ class KeyAttestationCertFactory(val fakeCalendar: FakeCalendar = FakeCalendar.DE
     }
 }
 
+@Suppress("GrazieInspectionRunner", "SpellCheckingInspection")
 private fun PrivateKey.asSigner(): ContentSigner {
     val signatureAlgorithm =
         when (this) {
