@@ -9,13 +9,14 @@ Android app.
 
 ## Prerequisites
 
-- Linux x86_64 (due to [Lettuce Native Transports](https://redis.github.io/lettuce/advanced-usage/native-transports/))
-- Redis
 - Google developer account
+- Podman Compose, or Linux x86_64 (due to
+  [Lettuce Native Transports](https://redis.github.io/lettuce/advanced-usage/native-transports/))
+  and Redis
 
 ## Development
 
-### Local
+### Local setup
 
 Go to Google Cloud console, create your Google Maps API key, and store it in the
 file `./secrets/google-maps-api-key`.
@@ -34,6 +35,27 @@ your_status_api_token=$(uuidgen)
 echo "Your status check API token is: $your_status_api_token"
 echo -n "$your_status_api_token" | sha256sum | awk '{print $1}' | tr -d '\n' > ./secrets/status-api-token-hash
 ```
+
+### Run locally with Podman
+
+Start Redis and the application:
+
+```shell
+podman-compose up
+```
+
+Or start Redis and the application with generous rate limiting:
+
+```shell
+RATE_LIMIT_DEFAULT=200 \
+RATE_LIMIT_LOGIN=200 \
+RATE_LIMIT_REGISTER=200 \
+RATE_LIMIT_UNVERIFIED=200 \
+RATE_LIMIT_VERIFIED=200 \
+podman-compose up
+```
+
+### Run locally without Podman
 
 Start Redis:
 
@@ -94,7 +116,7 @@ curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:808
 curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/rate-limit/hour"
 ```
 
-### Deployment
+### Production deployment
 
 Build:
 
