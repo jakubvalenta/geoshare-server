@@ -272,7 +272,7 @@ class AuthenticationRoutesTest {
             .body<ChallengeResponse>().challenge.base64Decode()
 
         // Register
-        val registrationSignature = Certs.intermediateKey.private.sign(registrationChallenge)
+        val registrationSignature = Certs.intermediateKey.private.sign(registrationChallenge) // Sign with the intermediate key instead of the leaf key
         val certificateChain = CertLists.validFactoryProvisioned
         val res = jsonHttpClient.post("/v1/auth/register") {
             contentType(ContentType.Application.Json)
@@ -328,7 +328,7 @@ class AuthenticationRoutesTest {
                 )
             }
             assertEquals(HttpStatusCode.Unauthorized, res.status)
-            assertEquals("Path validation failure chain", res.body())
+            assertEquals("Path validation failure", res.body())
 
             val hour = CallDetails.formatCurrentHour()
             assertEquals(1, statsRepository.get("stats:auth:register:error:$hour:total"))
@@ -422,6 +422,94 @@ class AuthenticationRoutesTest {
 
             val hour = CallDetails.formatCurrentHour()
             assertEquals(1, statsRepository.get("stats:auth:register:success:$hour:total"))
+        }
+
+    @Test
+    fun `register route - when signature is valid with software-signed key extension, it returns token with unverified device`() =
+        testApplication {
+            val cache = FakeCache()
+            val certificateVerification = TestCertificateVerification(cache)
+            val statsRepository = StatsRepository(cache)
+            environment {
+                config = ApplicationConfig("application-test.conf")
+            }
+            install(ContentNegotiation) { json() }
+            application {
+                authenticationModule(certificateVerification)
+                rateLimitModule()
+                statusPagesModule(statsRepository)
+            }
+            routing {
+                authenticationRoutes(cache, certificateVerification, statsRepository)
+            }
+
+            // Registration challenge
+            val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
+                .body<ChallengeResponse>().challenge.base64Decode()
+
+            // Register
+            val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
+            val certificateChain = CertLists.missingExtension
+            val res = jsonHttpClient.post("/v1/auth/register") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    RegisterRequest(
+                        challenge = registrationChallenge.base64Encode(),
+                        signature = registrationSignature.base64Encode(),
+                        certificateChain = certificateChain.map { it.encoded.base64Encode() },
+                    )
+                )
+            }
+            assertEquals(HttpStatusCode.OK, res.status)
+            val token = Tokens.verify(res.body<TokenResponse>().token)
+            assertEquals(Certs.leafKey.public.fingerprint(), token.subject)
+            assertEquals(Device.UNVERIFIED, token.getClaim("device").asString().toDevice())
+
+            val hour = CallDetails.formatCurrentHour()
+            assertEquals(1, statsRepository.get("stats:auth:register:success:$hour:total"))
+        }
+
+    @Test
+    fun `register route - when signature is invalid with software-signed key extension, it returns token with unverified device`() =
+        testApplication {
+            val cache = FakeCache()
+            val certificateVerification = TestCertificateVerification(cache)
+            val statsRepository = StatsRepository(cache)
+            environment {
+                config = ApplicationConfig("application-test.conf")
+            }
+            install(ContentNegotiation) { json() }
+            application {
+                authenticationModule(certificateVerification)
+                rateLimitModule()
+                statusPagesModule(statsRepository)
+            }
+            routing {
+                authenticationRoutes(cache, certificateVerification, statsRepository)
+            }
+
+            // Registration challenge
+            val registrationChallenge = jsonHttpClient.post("/v1/auth/challenge")
+                .body<ChallengeResponse>().challenge.base64Decode()
+
+            // Register
+            val registrationSignature = Certs.intermediateKey.private.sign(registrationChallenge) // Sign with the intermediate key instead of the leaf key
+            val certificateChain = CertLists.missingExtension
+            val res = jsonHttpClient.post("/v1/auth/register") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    RegisterRequest(
+                        challenge = registrationChallenge.base64Encode(),
+                        signature = registrationSignature.base64Encode(),
+                        certificateChain = certificateChain.map { it.encoded.base64Encode() },
+                    )
+                )
+            }
+            assertEquals(HttpStatusCode.Unauthorized, res.status)
+            assertEquals("Invalid signature", res.body())
+
+            val hour = CallDetails.formatCurrentHour()
+            assertEquals(1, statsRepository.get("stats:auth:register:error:$hour:total"))
         }
 
     @Test

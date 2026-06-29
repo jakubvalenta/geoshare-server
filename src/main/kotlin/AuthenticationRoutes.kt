@@ -103,11 +103,7 @@ fun Route.authenticationRoutes(
                                 Device.UNVERIFIED
                             }
                             val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire, device)
-                            // Register device before deleting the challenge, so the client can retry if
-                            // device registration crashes
                             cache.set("device:$publicKeyFingerprint", device.name, deviceExpire)
-                            // Delete challenge only after all validations pass, so the client can retry if
-                            // anything crashes
                             cache.delete("challenge:$challengeCacheKey")
                             TokenResponse(token)
                         } else {
@@ -115,11 +111,27 @@ fun Route.authenticationRoutes(
                         }
                     }
 
-                    is VerificationResult.ChallengeMismatch ->
-                        ErrorResponse("Challenge mismatch")
+                    is VerificationResult.PathValidationFailure if verificationResult.cause.message == "Target certificate does not contain an attestation extension" -> {
+                        val publicKey = certificateChain.firstOrNull()?.publicKey
+                        // Validate signature
+                        if (publicKey?.verifySignature(signature, challenge) == true) {
+                            // Generate token
+                            val publicKeyFingerprint = publicKey.fingerprint()
+                            val device = Device.UNVERIFIED
+                            val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire, device)
+                            cache.set("device:$publicKeyFingerprint", device.name, deviceExpire)
+                            cache.delete("challenge:$challengeCacheKey")
+                            TokenResponse(token)
+                        } else {
+                            ErrorResponse("Invalid signature")
+                        }
+                    }
 
                     is VerificationResult.PathValidationFailure ->
-                        ErrorResponse("Path validation failure chain")
+                        ErrorResponse("Path validation failure")
+
+                    is VerificationResult.ChallengeMismatch ->
+                        ErrorResponse("Challenge mismatch")
 
                     is VerificationResult.ChainParsingFailure ->
                         ErrorResponse("Chain parsing failure")

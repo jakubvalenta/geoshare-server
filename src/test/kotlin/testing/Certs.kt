@@ -39,6 +39,18 @@ object CertLists {
     }
 
     /**
+     * A chain where the leaf certificate has an extension with a missing value.
+     */
+    val missingExtension by lazy {
+        listOf(
+            certFactory.generateLeafCert(extension = null),
+            Certs.factoryAttestation,
+            Certs.factoryIntermediate,
+            certFactory.root,
+        )
+    }
+
+    /**
      * A chain created on a device with locked bootloader and a custom AVB key.
      */
     @JvmStatic
