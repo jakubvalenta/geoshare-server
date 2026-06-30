@@ -85,9 +85,8 @@ fun Route.authenticationRoutes(
                 ErrorResponse("Invalid challenge")
             } else {
                 // Validate certificate chain
-                val verifier = certificateVerification.getVerifier()
                 val certificateChain = req.certificateChain.map { it.base64Decode().readCertificateFromDEROrPEM() }
-                when (val verificationResult = verifier.verify(certificateChain)) {
+                when (val verificationResult = certificateVerification.verify(certificateChain)) {
                     is VerificationResult.Success -> {
                         // Validate signature
                         if (verificationResult.publicKey.verifySignature(signature, challenge)) {
@@ -111,7 +110,7 @@ fun Route.authenticationRoutes(
                         }
                     }
 
-                    is VerificationResult.PathValidationFailure if verificationResult.cause.message == "Target certificate does not contain an attestation extension" -> {
+                    is VerificationResult.PathValidationFailure if verificationResult.cause.message == "Chain terminates in a software root and no matching trust anchor was found, so the chain was not validated." -> {
                         val publicKey = certificateChain.firstOrNull()?.publicKey
                         // Validate signature
                         if (publicKey?.verifySignature(signature, challenge) == true) {

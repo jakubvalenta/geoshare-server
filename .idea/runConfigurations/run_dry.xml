@@ -7,6 +7,7 @@
           <entry key="DRY_RUN" value="true" />
           <entry key="GOOGLE_MAPS_API_KEY_FILE" value="secrets/google-maps-api-key" />
           <entry key="JWT_SECRET_FILE" value="secrets/jwt-secret" />
+          <entry key="STATUS_API_TOKEN_HASH_FILE" value="secrets/status-api-token-hash" />
         </map>
       </option>
       <option name="executionName" />

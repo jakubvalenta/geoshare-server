@@ -1,5 +1,6 @@
 package net.geoshare_app
 
+import com.android.keyattestation.verifier.VerificationResult
 import io.ktor.client.call.body
 import io.ktor.client.request.head
 import io.ktor.client.request.post
@@ -32,6 +33,8 @@ import net.geoshare_app.testing.FakeCache
 import net.geoshare_app.testing.TestCertificateVerification
 import net.geoshare_app.testing.Tokens
 import net.geoshare_app.testing.jsonHttpClient
+import java.security.cert.CertPathValidatorException
+import java.security.cert.X509Certificate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
@@ -425,10 +428,22 @@ class AuthenticationRoutesTest {
         }
 
     @Test
-    fun `register route - when signature is valid with software-signed key extension, it returns token with unverified device`() =
+    fun `register route - when signature is valid with software attestation, it returns token with unverified device`() =
         testApplication {
             val cache = FakeCache()
-            val certificateVerification = TestCertificateVerification(cache)
+            val certificateVerification = object : CertificateVerification {
+                override val cache = cache
+
+                override suspend fun verify(@Suppress("unused", "RedundantSuppression") chain: List<X509Certificate>) =
+                    VerificationResult.PathValidationFailure(
+                        CertPathValidatorException(
+                            "Chain terminates in a software root and no matching trust anchor was found, so the chain was not validated.",
+                            Throwable(),
+                        )
+                    )
+
+                override suspend fun fetchRevokedSerials() = emptySet<String>()
+            }
             val statsRepository = StatsRepository(cache)
             environment {
                 config = ApplicationConfig("application-test.conf")
@@ -449,7 +464,7 @@ class AuthenticationRoutesTest {
 
             // Register
             val registrationSignature = Certs.leafKey.private.sign(registrationChallenge)
-            val certificateChain = CertLists.missingExtension
+            val certificateChain = CertLists.validFactoryProvisioned // The chain is ignored, because we mock verification
             val res = jsonHttpClient.post("/v1/auth/register") {
                 contentType(ContentType.Application.Json)
                 setBody(
@@ -470,10 +485,22 @@ class AuthenticationRoutesTest {
         }
 
     @Test
-    fun `register route - when signature is invalid with software-signed key extension, it returns token with unverified device`() =
+    fun `register route - when signature is invalid with software attestation, it returns token with unverified device`() =
         testApplication {
             val cache = FakeCache()
-            val certificateVerification = TestCertificateVerification(cache)
+            val certificateVerification = object : CertificateVerification {
+                override val cache = cache
+
+                override suspend fun verify(@Suppress("unused", "RedundantSuppression") chain: List<X509Certificate>) =
+                    VerificationResult.PathValidationFailure(
+                        CertPathValidatorException(
+                            "Chain terminates in a software root and no matching trust anchor was found, so the chain was not validated.",
+                            Throwable(),
+                        )
+                    )
+
+                override suspend fun fetchRevokedSerials() = emptySet<String>()
+            }
             val statsRepository = StatsRepository(cache)
             environment {
                 config = ApplicationConfig("application-test.conf")
@@ -494,7 +521,7 @@ class AuthenticationRoutesTest {
 
             // Register
             val registrationSignature = Certs.intermediateKey.private.sign(registrationChallenge) // Sign with the intermediate key instead of the leaf key
-            val certificateChain = CertLists.missingExtension
+            val certificateChain = CertLists.validFactoryProvisioned // The chain is ignored, because we mock verification
             val res = jsonHttpClient.post("/v1/auth/register") {
                 contentType(ContentType.Application.Json)
                 setBody(

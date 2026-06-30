@@ -1,5 +1,6 @@
 package net.geoshare_app.testing
 
+import net.geoshare_app.testing.CertLists.REVOKED_SERIAL_NUMBER
 import net.geoshare_app.testing.KeyAttestationCertFactory.Companion.SELF_SIGNED_KEY_DESCRIPTION_EXT
 
 private val certFactory = KeyAttestationCertFactory()
@@ -32,18 +33,6 @@ object CertLists {
     val validFactoryProvisioned by lazy {
         listOf(
             certFactory.generateLeafCert(),
-            Certs.factoryAttestation,
-            Certs.factoryIntermediate,
-            certFactory.root,
-        )
-    }
-
-    /**
-     * A chain where the leaf certificate has an extension with a missing value.
-     */
-    val missingExtension by lazy {
-        listOf(
-            certFactory.generateLeafCert(extension = null),
             Certs.factoryAttestation,
             Certs.factoryIntermediate,
             certFactory.root,

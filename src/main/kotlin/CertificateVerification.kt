@@ -1,14 +1,16 @@
 package net.geoshare_app
 
 import com.android.keyattestation.verifier.GoogleTrustAnchors
+import com.android.keyattestation.verifier.VerificationResult
 import com.android.keyattestation.verifier.Verifier
 import com.android.keyattestation.verifier.getGoogleRevocationStatusFromWeb
+import java.security.cert.X509Certificate
 import java.time.Instant
 
 interface CertificateVerification {
     val cache: Cache
 
-    suspend fun getVerifier(): Verifier
+    suspend fun verify(chain: List<X509Certificate>): VerificationResult
 
     suspend fun fetchRevokedSerials(): Set<String>
 
@@ -55,13 +57,14 @@ interface CertificateVerification {
 }
 
 class CertificateVerificationImpl(override val cache: Cache) : CertificateVerification {
-    override suspend fun getVerifier(): Verifier {
+    override suspend fun verify(chain: List<X509Certificate>): VerificationResult {
         val revokedSerials = getRevokedSerials()
-        return Verifier(
+        val verifier = Verifier(
             GoogleTrustAnchors,
             { revokedSerials },
             { Instant.now() },
         )
+        return verifier.verify(chain)
     }
 
     /**
