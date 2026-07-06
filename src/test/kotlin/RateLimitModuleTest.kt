@@ -296,7 +296,7 @@ class RateLimitModuleTest {
             }
 
             // The first few requests pass
-            repeat(1) {
+            repeat(3) {
                 val res = client.get("/v1/google-maps/unverified/geocode/address/$query") {
                     headers[HttpHeaders.Authorization] = "Bearer ${Tokens.validUnverifiedDevice}"
                     headers["X-Real-Ip"] = "203.0.113.1" // IP address should not affect rate limiting
