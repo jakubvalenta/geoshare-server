@@ -48,7 +48,6 @@ Or start Redis and the application with generous rate limiting:
 
 ```shell
 RATE_LIMIT_DEFAULT=200 \
-RATE_LIMIT_LOGIN=200 \
 RATE_LIMIT_REGISTER=200 \
 RATE_LIMIT_UNVERIFIED=200 \
 RATE_LIMIT_VERIFIED=200 \
@@ -92,7 +91,6 @@ CACHE_URI="redis-socket:///run/user/1000/redis.sock" \
 GOOGLE_MAPS_API_KEY_FILE="secrets/google-maps-api-key" \
 JWT_SECRET_FILE="secrets/jwt-secret" \
 RATE_LIMIT_DEFAULT=200 \
-RATE_LIMIT_LOGIN=200 \
 RATE_LIMIT_REGISTER=200 \
 RATE_LIMIT_UNVERIFIED=200 \
 RATE_LIMIT_VERIFIED=200 \
