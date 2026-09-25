@@ -1,11 +1,11 @@
 [versions]
-bouncyCastle = "1.78.1"
-kotlin = "2.3.20"
-kotlinxCoroutines = "1.10.2"
-lettuce = "6.7.1.RELEASE"
-logback = "1.5.21"
-netty = "4.2.12.Final"
-protobuf = "4.28.3"
+bouncyCastle = "1.86"
+kotlin = "2.4.20"
+kotlinxCoroutines = "1.11.0"
+lettuce = "6.8.2.RELEASE"
+logback = "1.6.3"
+netty = "4.2.18.Final"
+protobuf = "4.36.2"
 
 [libraries]
 bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle" }

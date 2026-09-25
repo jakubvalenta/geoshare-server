@@ -1,32 +1,27 @@
 package net.geoshare_app.lib
 
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.request.header
 import io.ktor.server.request.path
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import net.geoshare_app.User
 
 class CallDetails(private val call: ApplicationCall) {
     val hour: String by lazy {
-        formatCurrentHour()
+        formatHour()
     }
     val path by lazy {
         call.request.path()
     }
     val endpoint by lazy {
         when {
-            path.startsWith("/v1/google-maps/geocode/address/") -> "google-maps-dispatch-address"
-            path.startsWith("/v1/google-maps/geocode/places/") -> "google-maps-dispatch-places"
-            path.startsWith("/v1/google-maps/unverified/geocode/address/") -> "google-maps-unverified-address"
-            path.startsWith("/v1/google-maps/unverified/geocode/places/") -> "google-maps-unverified-places"
-            path.startsWith("/v1/google-maps/verified/geocode/address/") -> "google-maps-verified-address"
-            path.startsWith("/v1/google-maps/verified/geocode/places/") -> "google-maps-verified-places"
+            path.startsWith("/v1/google-maps/geocode/address/") -> "google-maps-address"
+            path.startsWith("/v1/google-maps/geocode/places/") -> "google-maps-places"
             path == "/v1/auth/challenge" -> "auth-challenge"
             path == "/v1/auth/login" -> "auth-login"
             path == "/v1/auth/register" -> "auth-register"
             path.startsWith("/v1/status") -> "status"
+            path == "/test" -> "test"
             else -> "unknown"
         }
     }
@@ -34,14 +29,7 @@ class CallDetails(private val call: ApplicationCall) {
         call.request.header("X-Real-Ip") ?: "unknown"
     }
     val subject by lazy {
-        call.principal<JWTPrincipal>()?.subject ?: "unknown"
-    }
-
-    companion object {
-        private val hourFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH")
-
-        fun formatCurrentHour(): String =
-            LocalDateTime.now().format(hourFormat)
+        call.principal<User>()?.publicKeyFingerprint ?: "unknown"
     }
 }
 

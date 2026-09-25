@@ -10,6 +10,13 @@ import java.security.cert.X509Certificate
 import java.security.spec.X509EncodedKeySpec
 import java.util.Base64
 
+const val SERVICE_NAME = "geoshare-server"
+
+enum class SigningPurpose(val value: String) {
+    LOGIN("login"),
+    REGISTRATION("registration"),
+}
+
 fun ByteArray.sha256Hex(): String =
     MessageDigest.getInstance("SHA-256")
         .digest(this)
@@ -47,3 +54,10 @@ fun PrivateKey.sign(data: ByteArray): ByteArray =
         update(data)
         sign()
     }
+
+fun buildSigningPayloadV1(purpose: SigningPurpose, publicKeyFingerprint: String, challenge: ByteArray): String {
+    val separator = ':'
+    val fields = listOf(SERVICE_NAME, "v1", purpose.value, publicKeyFingerprint, challenge.base64Encode())
+    require(fields.none { separator in it }) { "Payload fields must not contain '$separator'" }
+    return fields.joinToString(separator.toString())
+}

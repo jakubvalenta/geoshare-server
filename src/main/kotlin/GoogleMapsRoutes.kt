@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalKtorApi::class)
+
 package net.geoshare_app
 
 import io.ktor.client.HttpClient
@@ -11,36 +13,40 @@ import io.ktor.client.request.headers
 import io.ktor.client.request.url
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.appendPathSegments
-import io.ktor.http.encodeURLPathPart
 import io.ktor.resources.Resource
 import io.ktor.serialization.JsonConvertException
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.authentication
-import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.authenticateWith
+import io.ktor.server.config.ApplicationConfigurationException
+import io.ktor.server.config.property
 import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.resources.get
 import io.ktor.server.response.respond
-import io.ktor.server.response.respondRedirect
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.application
 import io.ktor.server.routing.head
 import io.ktor.server.routing.route
+import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import net.geoshare_app.lib.Device
 import net.geoshare_app.lib.StatusFailed
 import net.geoshare_app.lib.UpstreamNotFoundException
 import net.geoshare_app.lib.UpstreamUnauthorizedException
 import net.geoshare_app.lib.UpstreamUnknownException
 import net.geoshare_app.lib.details
 import net.geoshare_app.lib.equalsDelta
-import net.geoshare_app.lib.propertyAsBoolean
-import net.geoshare_app.lib.propertyAsString
-import net.geoshare_app.lib.toDevice
+import net.geoshare_app.lib.orReadFile
 import net.geoshare_app.lib.toScale
 import kotlin.random.Random
+
+@Serializable
+private data class GoogleMapsConfig(
+    val apiKey: String? = null,
+    val apiKeyFile: String? = null,
+    val dryRun: Boolean? = null,
+)
 
 @Serializable
 data class GoogleMapsLocation(val latitude: Double, val longitude: Double) {
@@ -166,66 +172,37 @@ class GoogleMapsClient(
         }
 }
 
-fun Route.googleMapsRoutes(engine: HttpClientEngine = CIO.create(), statsRepository: StatsRepository) {
-    val config = environment.config
-
+fun Route.googleMapsRoutes(
+    authentication: Authentication,
+    engine: HttpClientEngine = CIO.create(),
+    statsRepository: StatsRepository
+) {
+    val googleMapsConfig: GoogleMapsConfig = application.property("googleMaps")
     val googleMapsClient = GoogleMapsClient(
-        apiKey = config.propertyAsString("googleMaps.apiKey", "googleMaps.apiKeyFile"),
-        dryRun = config.propertyAsBoolean("googleMaps.dryRun", false),
+        apiKey = googleMapsConfig.apiKey
+            .orReadFile(googleMapsConfig.apiKeyFile)
+            ?: throw ApplicationConfigurationException("Missing Google Maps API key or API key file"),
+        dryRun = googleMapsConfig.dryRun ?: false,
         engine = engine,
         statsRepository = statsRepository,
     )
 
     route("/v1/google-maps") {
-        authenticate("dispatch") {
-            rateLimit {
+        authenticateWith(authentication.userScheme) {
+            rateLimit(RateLimitName("per-user")) {
                 get<AddressResource> { address ->
-                    val encodedQuery = address.query.encodeURLPathPart()
-                    when (call.authentication.principal<JWTPrincipal>()?.toDevice()) {
-                        Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/address/$encodedQuery")
-                        Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/address/$encodedQuery")
-                        null -> call.respond(HttpStatusCode.Unauthorized)
-                    }
+                    call.respond(googleMapsClient.callGeocodeAddressApi(call, address.query))
                 }
                 get<PlaceResource> { place ->
-                    val encodedPlaceId = place.id.encodeURLPathPart()
-                    when (call.authentication.principal<JWTPrincipal>()?.toDevice()) {
-                        Device.UNVERIFIED -> call.respondRedirect("/v1/google-maps/unverified/geocode/places/$encodedPlaceId")
-                        Device.VERIFIED -> call.respondRedirect("/v1/google-maps/verified/geocode/places/$encodedPlaceId")
-                        null -> call.respond(HttpStatusCode.Unauthorized)
-                    }
-                }
-            }
-        }
-        route("/verified") {
-            authenticate("verified") {
-                rateLimit(RateLimitName("verified")) {
-                    get<AddressResource> { address ->
-                        call.respond(googleMapsClient.callGeocodeAddressApi(call, address.query))
-                    }
-                    get<PlaceResource> { place ->
-                        call.respond(googleMapsClient.callGeocodePlacesApi(call, place.id))
-                    }
-                }
-            }
-        }
-        route("/unverified") {
-            authenticate("unverified") {
-                rateLimit(RateLimitName("unverified")) {
-                    get<AddressResource> { address ->
-                        call.respond(googleMapsClient.callGeocodeAddressApi(call, address.query))
-                    }
-                    get<PlaceResource> { place ->
-                        call.respond(googleMapsClient.callGeocodePlacesApi(call, place.id))
-                    }
+                    call.respond(googleMapsClient.callGeocodePlacesApi(call, place.id))
                 }
             }
         }
     }
 
     route("/v1/status/google-maps") {
-        authenticate("status") {
-            rateLimit {
+        rateLimit {
+            authenticateWith(authentication.statusScheme) {
                 head("/connection") {
                     // Check that Google Maps geocode API returns a result, so the configured API key is correct
                     val res = googleMapsClient.callGeocodeAddressApi(call, "Lumen Field")

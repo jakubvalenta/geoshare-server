@@ -11,6 +11,7 @@ import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
 fun Application.rootModule(
+    authentication: Authentication,
     cache: Cache,
     certificateVerification: CertificateVerification,
     engine: HttpClientEngine,
@@ -24,10 +25,10 @@ fun Application.rootModule(
     statusPagesModule(statsRepository)
 
     routing {
-        authenticationRoutes(cache, certificateVerification, statsRepository)
-        cacheRoutes(cache)
-        googleMapsRoutes(engine, statsRepository)
-        rateLimitRoutes(statsRepository)
+        authenticationRoutes(authentication, statsRepository)
+        cacheRoutes(authentication, cache)
+        googleMapsRoutes(authentication, engine, statsRepository)
+        rateLimitRoutes(authentication, statsRepository)
     }
 }
 

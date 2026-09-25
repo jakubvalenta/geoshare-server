@@ -3,19 +3,20 @@ package net.geoshare_app.testing
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.DecodedJWT
-import net.geoshare_app.lib.Device
+import net.geoshare_app.Device
 import net.geoshare_app.lib.fingerprint
 import java.util.Date
 import kotlin.time.Duration.Companion.minutes
 
 object Tokens {
-    const val JWT_SECRET = "test-secret"
+    private const val JWT_SECRET = "test-secret"
 
     val validVerifiedDevice: String by lazy {
         JWT.create()
             .withSubject(Certs.leafKey.public.fingerprint())
             .withClaim("device", Device.VERIFIED.name)
             .withExpiresAt(Date(System.currentTimeMillis() + 1.minutes.inWholeMilliseconds))
+            .withIssuer("geoshare-server")
             .sign(Algorithm.HMAC256(JWT_SECRET))
     }
 
@@ -24,6 +25,7 @@ object Tokens {
             .withSubject("test-public-key-fingerprint-two")
             .withClaim("device", Device.VERIFIED.name)
             .withExpiresAt(Date(System.currentTimeMillis() + 1.minutes.inWholeMilliseconds))
+            .withIssuer("geoshare-server")
             .sign(Algorithm.HMAC256(JWT_SECRET))
     }
 
@@ -32,12 +34,31 @@ object Tokens {
             .withSubject(Certs.leafKey.public.fingerprint())
             .withClaim("device", Device.UNVERIFIED.name)
             .withExpiresAt(Date(System.currentTimeMillis() + 1.minutes.inWholeMilliseconds))
+            .withIssuer("geoshare-server")
             .sign(Algorithm.HMAC256(JWT_SECRET))
     }
 
     val invalidMissingDevice: String by lazy {
         JWT.create()
             .withSubject(Certs.leafKey.public.fingerprint())
+            .withExpiresAt(Date(System.currentTimeMillis() + 1.minutes.inWholeMilliseconds))
+            .withIssuer("geoshare-server")
+            .sign(Algorithm.HMAC256(JWT_SECRET))
+    }
+
+    val invalidWrongIssuer: String by lazy {
+        JWT.create()
+            .withSubject(Certs.leafKey.public.fingerprint())
+            .withClaim("device", Device.VERIFIED.name)
+            .withExpiresAt(Date(System.currentTimeMillis() + 1.minutes.inWholeMilliseconds))
+            .withIssuer("spam")
+            .sign(Algorithm.HMAC256(JWT_SECRET))
+    }
+
+    val invalidMissingIssuer: String by lazy {
+        JWT.create()
+            .withSubject(Certs.leafKey.public.fingerprint())
+            .withClaim("device", Device.VERIFIED.name)
             .withExpiresAt(Date(System.currentTimeMillis() + 1.minutes.inWholeMilliseconds))
             .sign(Algorithm.HMAC256(JWT_SECRET))
     }
@@ -47,6 +68,7 @@ object Tokens {
             .withSubject(Certs.leafKey.public.fingerprint())
             .withClaim("device", Device.VERIFIED.name)
             .withExpiresAt(Date(System.currentTimeMillis() - 1.minutes.inWholeMilliseconds))
+            .withIssuer("geoshare-server")
             .sign(Algorithm.HMAC256(JWT_SECRET))
     }
 

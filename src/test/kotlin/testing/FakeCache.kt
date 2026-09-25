@@ -56,6 +56,9 @@ class FakeCache(private val timeSource: TimeSource = TimeSource.Monotonic) : Cac
         map[key] = StringItem(value, timeSource.markNow(), expire)
     }
 
+    override suspend fun setIfNotExists(key: String, value: String, expire: Duration): Boolean =
+        map.putIfAbsent(key, StringItem(value, timeSource.markNow(), expire)) == null
+
     override suspend fun increase(key: String, expire: Duration) {
         if (map.contains(key)) {
             map[key] = (map[key] as IntItem).run { copy(value = value + 1) }
@@ -72,9 +75,8 @@ class FakeCache(private val timeSource: TimeSource = TimeSource.Monotonic) : Cac
         }
     }
 
-    override suspend fun delete(key: String) {
-        map.remove(key)
-    }
+    override suspend fun delete(key: String) =
+        get(key).also { map.remove(key) } != null
 
     override suspend fun expire(key: String, expire: Duration) {
         map[key]?.let { item ->

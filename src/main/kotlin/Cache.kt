@@ -11,13 +11,29 @@ import kotlin.time.Duration
 
 interface Cache : AutoCloseable {
     suspend fun get(key: String): String?
+
     suspend fun hashGet(key: String, field: String): String?
+
     suspend fun set(key: String, value: String)
+
     suspend fun set(key: String, value: String, expire: Duration)
+
+    /**
+     * Sets [key] to [value] with [expire] if the key didn't exist, and returns true if the key didn't exist.
+     */
+    suspend fun setIfNotExists(key: String, value: String, expire: Duration): Boolean
+
     suspend fun increase(key: String, expire: Duration)
+
     suspend fun hashIncrease(key: String, field: String, expire: Duration)
-    suspend fun delete(key: String)
+
+    /**
+     * Deletes [key] and returns true if the key existed.
+     */
+    suspend fun delete(key: String): Boolean
+
     suspend fun expire(key: String, expire: Duration)
+
     suspend fun ping(): Boolean
 }
 
@@ -71,6 +87,9 @@ class CacheImpl(connectionUri: String) : Cache {
         commands.set(key, value, SetArgs.Builder.ex(expire.inWholeSeconds))
     }
 
+    override suspend fun setIfNotExists(key: String, value: String, expire: Duration): Boolean =
+        commands.set(key, value, SetArgs.Builder.ex(expire.inWholeSeconds).nx()) != null
+
     override suspend fun increase(key: String, expire: Duration) {
         commands.evalsha<Any>(
             increaseScript,
@@ -91,8 +110,9 @@ class CacheImpl(connectionUri: String) : Cache {
         )
     }
 
-    override suspend fun delete(key: String) {
-        commands.del(key)
+    override suspend fun delete(key: String): Boolean {
+        val removedNumber = commands.del(key)
+        return removedNumber != null && removedNumber > 0
     }
 
     override suspend fun expire(key: String, expire: Duration) {

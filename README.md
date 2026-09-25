@@ -48,9 +48,8 @@ Or start Redis and the application with generous rate limiting:
 
 ```shell
 RATE_LIMIT_DEFAULT=200 \
+RATE_LIMIT_PER_USER=200 \
 RATE_LIMIT_REGISTER=200 \
-RATE_LIMIT_UNVERIFIED=200 \
-RATE_LIMIT_VERIFIED=200 \
 podman-compose up
 ```
 
@@ -91,9 +90,8 @@ CACHE_URI="redis-socket:///run/user/1000/redis.sock" \
 GOOGLE_MAPS_API_KEY_FILE="secrets/google-maps-api-key" \
 JWT_SECRET_FILE="secrets/jwt-secret" \
 RATE_LIMIT_DEFAULT=200 \
+RATE_LIMIT_PER_USER=200 \
 RATE_LIMIT_REGISTER=200 \
-RATE_LIMIT_UNVERIFIED=200 \
-RATE_LIMIT_VERIFIED=200 \
 STATUS_API_TOKEN_HASH_FILE="secrets/status-api-token-hash" \
 ./gradlew run
 ```
@@ -101,20 +99,27 @@ STATUS_API_TOKEN_HASH_FILE="secrets/status-api-token-hash" \
 Finally, you can check the status of the running application:
 
 ```shell
-curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/cache/connection"
-curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/auth/challenge/success/hour"
-curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/auth/login/error/hour"
-curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/auth/login/success/hour"
-curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/auth/register/error/hour"
-curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/auth/register/success/hour"
-curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/auth/unauthorized/hour"
-curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/google-maps/connection"
-curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/google-maps/exception/hour"
-curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/google-maps/success/hour"
-curl -I -H "Authorization: Bearer $your_status_api_token" "https://127.0.0.1:8080/v1/status/rate-limit/hour"
+curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/cache/connection"
+curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/auth/challenge/success/hour"
+curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/auth/legacy-signature/success/7days"
+curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/auth/login/error/hour"
+curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/auth/login/success/hour"
+curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/auth/register/error/hour"
+curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/auth/register/success/hour"
+curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/auth/unauthorized/hour"
+curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/google-maps/connection"
+curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/google-maps/exception/hour"
+curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/google-maps/success/hour"
+curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/rate-limit/hour"
 ```
 
 ### Production deployment
+
+Requirements:
+
+- Java 21
+- Nginx proxy that sets the `X-Real-Ip` header for rate limiting.
+- Redis with `maxmemory=256mb` and `maxmemory-policy=allkeys-lru`.
 
 Build:
 

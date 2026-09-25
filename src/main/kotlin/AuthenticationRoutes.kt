@@ -1,9 +1,9 @@
+@file:OptIn(ExperimentalKtorApi::class)
+
 package net.geoshare_app
 
-import com.android.keyattestation.verifier.VerificationResult
-import com.android.keyattestation.verifier.VerifiedBootState
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.authenticateWith
 import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.receive
@@ -12,22 +12,15 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.head
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.serialization.Serializable
-import net.geoshare_app.lib.Device
 import net.geoshare_app.lib.StatusFailed
 import net.geoshare_app.lib.base64Decode
 import net.geoshare_app.lib.base64Encode
-import net.geoshare_app.lib.createToken
 import net.geoshare_app.lib.details
-import net.geoshare_app.lib.fingerprint
-import net.geoshare_app.lib.propertyAsBytes
-import net.geoshare_app.lib.propertyAsDuration
-import net.geoshare_app.lib.readCertificateFromDEROrPEM
-import net.geoshare_app.lib.readPublicKeyFromDER
-import net.geoshare_app.lib.sha256Hex
-import net.geoshare_app.lib.toDevice
-import net.geoshare_app.lib.verifySignature
-import java.security.SecureRandom
+import net.geoshare_app.lib.formatHour
+import net.geoshare_app.lib.listHours
+import java.time.LocalDateTime
 
 @Serializable
 data class ChallengeResponse(val challenge: String)
@@ -38,128 +31,31 @@ data class RegisterRequest(val challenge: String, val signature: String, val cer
 @Serializable
 data class LoginRequest(val challenge: String, val signature: String, val publicKey: String)
 
-sealed interface AuthenticationResponse
-
 @Serializable
-data class ErrorResponse(val message: String) : AuthenticationResponse
+data class TokenResponse(val token: String)
 
-@Serializable
-data class TokenResponse(val token: String) : AuthenticationResponse
-
-fun Route.authenticationRoutes(
-    cache: Cache,
-    certificateVerification: CertificateVerification,
-    statsRepository: StatsRepository,
-) {
-    val config = environment.config
-
-    val challengeExpire = config.propertyAsDuration("auth.challengeExpireSec")
-    val deviceExpire = config.propertyAsDuration("auth.deviceExpireSec")
-    val jwtExpire = config.propertyAsDuration("auth.jwtExpireSec")
-    val jwtSecret = config.propertyAsBytes("auth.jwtSecret", "auth.jwtSecretFile")
-
-    val secureRandom = SecureRandom()
-
+/**
+ * See [Authentication] for a description of the authentication flow.
+ */
+fun Route.authenticationRoutes(authentication: Authentication, statsRepository: StatsRepository) {
     rateLimit {
         post("/v1/auth/challenge") {
-            val challenge = ByteArray(32).also { secureRandom.nextBytes(it) }
-            val challengeCacheKey = challenge.sha256Hex()
-            cache.set("challenge:$challengeCacheKey", "", challengeExpire)
-            val res = ChallengeResponse(challenge.base64Encode())
-            with(call.details) {
-                statsRepository.increase("stats:auth:challenge:success:$hour:total")
-            }
-            call.respond(res)
+            val challenge = authentication.generateChallenge()
+            call.respond(ChallengeResponse(challenge.base64Encode()))
         }
     }
 
     rateLimit(RateLimitName("register")) {
         post("/v1/auth/register") {
             val req = call.receive<RegisterRequest>()
-            val challenge = req.challenge.base64Decode()
-            val challengeCacheKey = challenge.sha256Hex()
-            val signature = req.signature.base64Decode()
-
-            // Validate challenge
-            val res = if (cache.get("challenge:$challengeCacheKey") == null) {
-                ErrorResponse("Invalid challenge")
-            } else {
-                // Validate certificate chain
-                val certificateChain = req.certificateChain.map { it.base64Decode().readCertificateFromDEROrPEM() }
-                when (val verificationResult = certificateVerification.verify(certificateChain)) {
-                    is VerificationResult.Success -> {
-                        // Validate signature
-                        if (verificationResult.publicKey.verifySignature(signature, challenge)) {
-                            // Generate token
-                            val publicKeyFingerprint = verificationResult.publicKey.fingerprint()
-                            val device = if (
-                                verificationResult.verifiedBootState == VerifiedBootState.VERIFIED ||
-                                (verificationResult.verifiedBootState == VerifiedBootState.SELF_SIGNED &&
-                                    certificateVerification.isKnownBootFingerprint(verificationResult.verifiedBootFingerprint))
-                            ) {
-                                Device.VERIFIED
-                            } else {
-                                Device.UNVERIFIED
-                            }
-                            val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire, device)
-                            cache.set("device:$publicKeyFingerprint", device.name, deviceExpire)
-                            cache.delete("challenge:$challengeCacheKey")
-                            TokenResponse(token)
-                        } else {
-                            ErrorResponse("Invalid signature")
-                        }
-                    }
-
-                    is VerificationResult.PathValidationFailure if verificationResult.cause.message == "Chain terminates in a software root and no matching trust anchor was found, so the chain was not validated." -> {
-                        val publicKey = certificateChain.firstOrNull()?.publicKey
-                        // Validate signature
-                        if (publicKey?.verifySignature(signature, challenge) == true) {
-                            // Generate token
-                            val publicKeyFingerprint = publicKey.fingerprint()
-                            val device = Device.UNVERIFIED
-                            val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire, device)
-                            cache.set("device:$publicKeyFingerprint", device.name, deviceExpire)
-                            cache.delete("challenge:$challengeCacheKey")
-                            TokenResponse(token)
-                        } else {
-                            ErrorResponse("Invalid signature")
-                        }
-                    }
-
-                    is VerificationResult.PathValidationFailure ->
-                        ErrorResponse("Path validation failure")
-
-                    is VerificationResult.ChallengeMismatch ->
-                        ErrorResponse("Challenge mismatch")
-
-                    is VerificationResult.ChainParsingFailure ->
-                        ErrorResponse("Chain parsing failure")
-
-                    is VerificationResult.ExtensionParsingFailure ->
-                        ErrorResponse("Extension parsing failure")
-
-                    is VerificationResult.ConstraintViolation ->
-                        ErrorResponse("Constraint violation")
-
-                    is VerificationResult.SoftwareAttestationUnsupported ->
-                        ErrorResponse("Software attestation unsupported")
-                }
-            }
-
-            when (res) {
-                is ErrorResponse -> {
-                    with(call.details) {
-                        statsRepository.increase("stats:auth:register:error:$hour:total")
-                    }
-                    call.respond(HttpStatusCode.Unauthorized, res.message)
-                }
-
-                is TokenResponse -> {
-                    with(call.details) {
-                        statsRepository.increase("stats:auth:register:success:$hour:total")
-                    }
-                    call.respond(res)
-                }
+            when (val res = authentication.register(
+                certificateChain = req.certificateChain,
+                challengeBase64 = req.challenge,
+                signature = req.signature.base64Decode(),
+            )) {
+                is RegistrationResult.Conflict -> call.respond(HttpStatusCode.Conflict, res.message)
+                is RegistrationResult.Success -> call.respond(TokenResponse(res.token))
+                is RegistrationResult.Unauthorized -> call.respond(HttpStatusCode.Unauthorized, res.message)
             }
         }
     }
@@ -167,57 +63,20 @@ fun Route.authenticationRoutes(
     rateLimit {
         post("/v1/auth/login") {
             val req = call.receive<LoginRequest>()
-            val challenge = req.challenge.base64Decode()
-            val challengeCacheKey = challenge.sha256Hex()
-            val signature = req.signature.base64Decode()
-
-            // Validate challenge
-            val res = if (cache.get("challenge:$challengeCacheKey") == null) {
-                ErrorResponse("Invalid challenge")
-            } else {
-                // Validate device
-                val publicKey = req.publicKey.base64Decode().readPublicKeyFromDER()
-                val publicKeyFingerprint = publicKey.fingerprint()
-                val device = cache.get("device:$publicKeyFingerprint")?.toDevice()
-                if (device == null) {
-                    ErrorResponse("Unknown device")
-                } else {
-                    // Validate signature
-                    if (publicKey.verifySignature(signature, challenge)) {
-                        val token = createToken(publicKeyFingerprint, jwtSecret, jwtExpire, device)
-                        // Refresh device expiration, so active devices never expire
-                        cache.expire("device:$publicKeyFingerprint", deviceExpire)
-                        // Delete challenge only after all validations pass, so the client can retry if anything
-                        // crashes
-                        cache.delete("challenge:$challengeCacheKey")
-                        TokenResponse(token)
-                    } else {
-                        ErrorResponse("Invalid signature")
-                    }
-                }
-            }
-
-            when (res) {
-                is ErrorResponse -> {
-                    with(call.details) {
-                        statsRepository.increase("stats:auth:login:error:$hour:total")
-                    }
-                    call.respond(HttpStatusCode.Unauthorized, res.message)
-                }
-
-                is TokenResponse -> {
-                    with(call.details) {
-                        statsRepository.increase("stats:auth:login:success:$hour:total")
-                    }
-                    call.respond(res)
-                }
+            when (val res = authentication.login(
+                challengeBase64 = req.challenge,
+                publicKey = req.publicKey.base64Decode(),
+                signature = req.signature.base64Decode(),
+            )) {
+                is LoginResult.Success -> call.respond(TokenResponse(res.token))
+                is LoginResult.Unauthorized -> call.respond(HttpStatusCode.Unauthorized, res.message)
             }
         }
     }
 
     route("/v1/status/auth") {
-        authenticate("status") {
-            rateLimit {
+        rateLimit {
+            authenticateWith(authentication.statusScheme) {
                 head("/challenge/success/hour") {
                     // Check that there hasn't been too many challenge requests, which would suggest misuse
                     with(call.details) {
@@ -227,6 +86,19 @@ fun Route.authenticationRoutes(
                         } else {
                             call.respond(num)
                         }
+                    }
+                }
+                head("/legacy-signature/success/7days") {
+                    // Check that there haven't been any legacy signature uses, so we can disable legacy signatures
+                    val num = LocalDateTime.now()
+                        .listHours(0 downTo -167L)
+                        .sumOf {
+                            statsRepository.get("stats:auth:legacy-signature:success:${formatHour(it)}:total")
+                        }
+                    if (num > 0) {
+                        call.respond(StatusFailed, num)
+                    } else {
+                        call.respond(num)
                     }
                 }
                 head("/login/success/hour") {
@@ -274,7 +146,7 @@ fun Route.authenticationRoutes(
                     }
                 }
                 head("/unauthorized/hour") {
-                    // Check that there hasn't been too unauthorized requests
+                    // Check that there hasn't been too many unauthorized requests
                     with(call.details) {
                         val num = statsRepository.get("stats:auth:unauthorized:$hour:total")
                         if (num > 100) {

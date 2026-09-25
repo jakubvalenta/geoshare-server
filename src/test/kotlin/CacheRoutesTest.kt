@@ -5,6 +5,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.config.MapApplicationConfig
+import io.ktor.server.config.getAs
 import io.ktor.server.config.mergeWith
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,24 +19,33 @@ import kotlin.time.Duration
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CacheRoutesTest {
+    private val statusApiToken = "test-status-api-token"
+
     @Test
     fun `status cache route - when cache ping succeeds, it returns 200`() = testApplication {
+        val config = ApplicationConfig("application-test.conf").mergeWith(
+            MapApplicationConfig(
+                "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+            )
+        )
         val cache = FakeCache()
         val certificateVerification = TestCertificateVerification(cache)
-        val statusApiToken = "test-status-api-token"
+        val statsRepository = StatsRepository(cache)
+        val authentication = Authentication(
+            authenticationConfig = config.property("auth").getAs<AuthenticationConfig>(),
+            cache = cache,
+            certificateVerification = certificateVerification,
+            statsRepository = statsRepository,
+        )
         environment {
-            config = ApplicationConfig("application-test.conf").mergeWith(
-                MapApplicationConfig(
-                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
-                )
-            )
+            this.config = config
         }
         application {
             authenticationModule(certificateVerification)
             rateLimitModule()
         }
         routing {
-            cacheRoutes(cache)
+            cacheRoutes(authentication, cache)
         }
 
         val res = client.head("/v1/status/cache/connection") {
@@ -46,6 +56,11 @@ class CacheRoutesTest {
 
     @Test
     fun `status cache route - when cache ping fails, it returns failure`() = testApplication {
+        val config = ApplicationConfig("application-test.conf").mergeWith(
+            MapApplicationConfig(
+                "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+            )
+        )
         @Suppress("RedundantSuppression")
         val cache = object : Cache {
             @Suppress("EmptyMethod", "unused")
@@ -60,6 +75,9 @@ class CacheRoutesTest {
             @Suppress("EmptyMethod", "unused")
             override suspend fun set(key: String, value: String, expire: Duration) {}
 
+            @Suppress("SameReturnValue", "unused")
+            override suspend fun setIfNotExists(key: String, value: String, expire: Duration) = false
+
             @Suppress("EmptyMethod", "unused")
             override suspend fun increase(key: String, expire: Duration) {}
 
@@ -67,7 +85,7 @@ class CacheRoutesTest {
             override suspend fun hashIncrease(key: String, field: String, expire: Duration) {}
 
             @Suppress("EmptyMethod", "unused")
-            override suspend fun delete(key: String) {}
+            override suspend fun delete(key: String) = false
 
             @Suppress("EmptyMethod", "unused")
             override suspend fun expire(key: String, expire: Duration) {}
@@ -78,20 +96,22 @@ class CacheRoutesTest {
             override fun close() {}
         }
         val certificateVerification = TestCertificateVerification(cache)
-        val statusApiToken = "test-status-api-token"
+        val statsRepository = StatsRepository(cache)
+        val authentication = Authentication(
+            authenticationConfig = config.property("auth").getAs<AuthenticationConfig>(),
+            cache = cache,
+            certificateVerification = certificateVerification,
+            statsRepository = statsRepository,
+        )
         environment {
-            config = ApplicationConfig("application-test.conf").mergeWith(
-                MapApplicationConfig(
-                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
-                )
-            )
+            this.config = config
         }
         application {
             authenticationModule(certificateVerification)
             rateLimitModule()
         }
         routing {
-            cacheRoutes(cache)
+            cacheRoutes(authentication, cache)
         }
 
         val res = client.head("/v1/status/cache/connection") {
@@ -102,22 +122,29 @@ class CacheRoutesTest {
 
     @Test
     fun `status cache route - when called with incorrect token, it returns 401`() = testApplication {
+        val config = ApplicationConfig("application-test.conf").mergeWith(
+            MapApplicationConfig(
+                "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
+            )
+        )
         val cache = FakeCache()
         val certificateVerification = TestCertificateVerification(cache)
-        val statusApiToken = "test-status-api-token"
+        val statsRepository = StatsRepository(cache)
+        val authentication = Authentication(
+            authenticationConfig = config.property("auth").getAs<AuthenticationConfig>(),
+            cache = cache,
+            certificateVerification = certificateVerification,
+            statsRepository = statsRepository,
+        )
         environment {
-            config = ApplicationConfig("application-test.conf").mergeWith(
-                MapApplicationConfig(
-                    "auth.statusApiTokenHash" to statusApiToken.toByteArray().sha256Hex(),
-                )
-            )
+            this.config = config
         }
         application {
             authenticationModule(certificateVerification)
             rateLimitModule()
         }
         routing {
-            cacheRoutes(cache)
+            cacheRoutes(authentication, cache)
         }
 
         val res = client.head("/v1/status/cache/connection") {

@@ -18,7 +18,7 @@ class StatsRepository(private val cache: Cache) {
         cache.hashGet(key, field)?.toIntOrNull() ?: 0
 
     private companion object {
-        private val expire = 72.hours
+        private val expire = 168.hours
     }
 }
 
