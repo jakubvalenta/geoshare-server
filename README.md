@@ -118,7 +118,9 @@ podman run \
     -v /run/user/1000:/run/user/1000 \
     -e CACHE_URI="redis-socket:///run/user/1000/redis.sock" \
     -e GOOGLE_MAPS_API_KEY="$(< secrets/google-maps-api-key)" \
+    -e HOST="127.0.0.1" \
     -e JWT_SECRET="$(< secrets/jwt-secret)" \
+    -e PORT="8080" \
     -e STATUS_API_TOKEN_HASH="$(< secrets/status-api-token-hash)" \
     geoshare-server
 ```
