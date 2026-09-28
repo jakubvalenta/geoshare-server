@@ -1,0 +1,14 @@
+*.iml
+.DS_Store
+.attach_pid*
+.cxx
+.externalNativeBuild
+.gradle
+.kotlin
+/.idea
+/build
+/captures
+/local.properties
+README.html
+dump.rdb
+secrets

@@ -36,24 +36,7 @@ echo "Your status check API token is: $your_status_api_token"
 echo -n "$your_status_api_token" | sha256sum | awk '{print $1}' | tr -d '\n' > ./secrets/status-api-token-hash
 ```
 
-### Run locally with Podman
-
-Start Redis and the application:
-
-```shell
-podman-compose up
-```
-
-Or start Redis and the application with generous rate limiting:
-
-```shell
-RATE_LIMIT_DEFAULT=200 \
-RATE_LIMIT_PER_USER=200 \
-RATE_LIMIT_REGISTER=200 \
-podman-compose up
-```
-
-### Run locally without Podman
+### Run locally
 
 Start Redis:
 
@@ -111,6 +94,50 @@ curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080
 curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/google-maps/exception/hour"
 curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/google-maps/success/hour"
 curl -I -H "Authorization: Bearer $your_status_api_token" "http://127.0.0.1:8080/v1/status/rate-limit/hour"
+```
+
+### Run with Docker or Podman
+
+Build the image:
+
+```shell
+podman build -t geoshare-server .
+```
+
+Start Redis:
+
+```shell
+redis-server --port 0 --unixsocket /run/user/1000/redis.sock
+```
+
+Run the application:
+
+```shell
+podman run \
+    --network=host \
+    -v /run/user/1000:/run/user/1000 \
+    -e CACHE_URI="redis-socket:///run/user/1000/redis.sock" \
+    -e GOOGLE_MAPS_API_KEY="$(< secrets/google-maps-api-key)" \
+    -e JWT_SECRET="$(< secrets/jwt-secret)" \
+    -e STATUS_API_TOKEN_HASH="$(< secrets/status-api-token-hash)" \
+    geoshare-server
+```
+
+### Run with Docker Compose or Podman Compose
+
+Start Redis and the application:
+
+```shell
+podman-compose up
+```
+
+Or start Redis and the application with generous rate limiting:
+
+```shell
+RATE_LIMIT_DEFAULT=200 \
+RATE_LIMIT_PER_USER=200 \
+RATE_LIMIT_REGISTER=200 \
+podman-compose up
 ```
 
 ### Production deployment
