@@ -1669,7 +1669,6 @@ class GoogleMapsRoutesTest {
                 headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
             }
             assertEquals(StatusFailed, res.status)
-            assertEquals("Unexpected location", res.bodyAsText())
         }
 
     @Test
@@ -1723,7 +1722,6 @@ class GoogleMapsRoutesTest {
             headers[HttpHeaders.Authorization] = "Bearer $statusApiToken"
         }
         assertEquals(StatusFailed, res.status)
-        assertEquals("Unexpected location", res.bodyAsText())
     }
 
     @Test

@@ -82,9 +82,9 @@ fun Route.authenticationRoutes(authentication: Authentication, statsRepository: 
                     with(call.details) {
                         val num = statsRepository.get("stats:auth:challenge:success:$hour:total")
                         if (num > 100) {
-                            call.respond(StatusFailed, num)
+                            call.respond(StatusFailed)
                         } else {
-                            call.respond(num)
+                            call.respond(HttpStatusCode.OK)
                         }
                     }
                 }
@@ -96,9 +96,9 @@ fun Route.authenticationRoutes(authentication: Authentication, statsRepository: 
                             statsRepository.get("stats:auth:legacy-signature:success:${formatHour(it)}:total")
                         }
                     if (num > 0) {
-                        call.respond(StatusFailed, num)
+                        call.respond(StatusFailed)
                     } else {
-                        call.respond(num)
+                        call.respond(HttpStatusCode.OK)
                     }
                 }
                 head("/login/success/hour") {
@@ -106,9 +106,9 @@ fun Route.authenticationRoutes(authentication: Authentication, statsRepository: 
                     with(call.details) {
                         val num = statsRepository.get("stats:auth:login:success:$hour:total")
                         if (num > 10) {
-                            call.respond(StatusFailed, num)
+                            call.respond(StatusFailed)
                         } else {
-                            call.respond(num)
+                            call.respond(HttpStatusCode.OK)
                         }
                     }
                 }
@@ -117,9 +117,9 @@ fun Route.authenticationRoutes(authentication: Authentication, statsRepository: 
                     with(call.details) {
                         val num = statsRepository.get("stats:auth:login:error:$hour:total")
                         if (num > 10) {
-                            call.respond(StatusFailed, num)
+                            call.respond(StatusFailed)
                         } else {
-                            call.respond(num)
+                            call.respond(HttpStatusCode.OK)
                         }
                     }
                 }
@@ -128,9 +128,9 @@ fun Route.authenticationRoutes(authentication: Authentication, statsRepository: 
                     with(call.details) {
                         val num = statsRepository.get("stats:auth:register:success:$hour:total")
                         if (num > 10) {
-                            call.respond(StatusFailed, num)
+                            call.respond(StatusFailed)
                         } else {
-                            call.respond(num)
+                            call.respond(HttpStatusCode.OK)
                         }
                     }
                 }
@@ -139,9 +139,9 @@ fun Route.authenticationRoutes(authentication: Authentication, statsRepository: 
                     with(call.details) {
                         val num = statsRepository.get("stats:auth:register:error:$hour:total")
                         if (num > 10) {
-                            call.respond(StatusFailed, num)
+                            call.respond(StatusFailed)
                         } else {
-                            call.respond(num)
+                            call.respond(HttpStatusCode.OK)
                         }
                     }
                 }
@@ -150,9 +150,9 @@ fun Route.authenticationRoutes(authentication: Authentication, statsRepository: 
                     with(call.details) {
                         val num = statsRepository.get("stats:auth:unauthorized:$hour:total")
                         if (num > 100) {
-                            call.respond(StatusFailed, num)
+                            call.respond(StatusFailed)
                         } else {
-                            call.respond(num)
+                            call.respond(HttpStatusCode.OK)
                         }
                     }
                 }

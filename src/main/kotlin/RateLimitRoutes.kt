@@ -2,6 +2,7 @@
 
 package net.geoshare_app
 
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticateWith
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.response.respond
@@ -21,9 +22,9 @@ fun Route.rateLimitRoutes(authentication: Authentication, statsRepository: Stats
                     with(call.details) {
                         val num = statsRepository.get("stats:rate-limit:$hour:total")
                         if (num > 5) {
-                            call.respond(StatusFailed, num)
+                            call.respond(StatusFailed)
                         } else {
-                            call.respond(num)
+                            call.respond(HttpStatusCode.OK)
                         }
                     }
                 }

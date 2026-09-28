@@ -207,7 +207,7 @@ fun Route.googleMapsRoutes(
                     // Check that Google Maps geocode API returns a result, so the configured API key is correct
                     val res = googleMapsClient.callGeocodeAddressApi(call, "Lumen Field")
                     if (res.results.firstOrNull()?.location != GoogleMapsLocation(47.5951518, -122.3316394)) {
-                        call.respond(StatusFailed, "Unexpected location")
+                        call.respond(StatusFailed)
                     } else {
                         call.respond(HttpStatusCode.OK)
                     }
@@ -217,9 +217,9 @@ fun Route.googleMapsRoutes(
                     with(call.details) {
                         val num = statsRepository.get("stats:google-maps:success:$hour:total")
                         if (num > 100) {
-                            call.respond(StatusFailed, num)
+                            call.respond(StatusFailed)
                         } else {
-                            call.respond(num)
+                            call.respond(HttpStatusCode.OK)
                         }
                     }
                 }
@@ -228,9 +228,9 @@ fun Route.googleMapsRoutes(
                     with(call.details) {
                         val num = statsRepository.get("stats:google-maps:exception:$hour:total")
                         if (num > 5) {
-                            call.respond(StatusFailed, num)
+                            call.respond(StatusFailed)
                         } else {
-                            call.respond(num)
+                            call.respond(HttpStatusCode.OK)
                         }
                     }
                 }
